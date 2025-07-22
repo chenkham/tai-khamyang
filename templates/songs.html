@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traditional Songs - Tai-Khamyang</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='song.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <h2>Tai-Khamyang</h2>
+            </div>
+            <div class="nav-menu" id="navMenu">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/dictionary" class="nav-link ">Dictionary</a>
+                <a href="/songs" class="nav-link active">Songs</a>
+                <a href="/about" class="nav-link">About</a>
+                <a href="/admin" class="nav-link">Admin</a>
+            </div>
+            <div class="hamburger" id="hamburger">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header -->
+    <section class="page-header">
+        <h1><i class="fas fa-music"></i> Traditional Songs</h1>
+        <p>Experience the rich musical heritage of Tai-Khamyang culture</p>
+    </section>
+
+    <!-- Search Section -->
+    <section class="search-section">
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search songs by title or description...">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="stats" id="songStats">
+                <span id="totalSongs">0</span> songs available
+            </div>
+        </div>
+    </section>
+
+    <!-- Music Container -->
+    <div class="music-container">
+        <!-- Now Playing Section -->
+        <div class="now-playing" id="nowPlaying" style="display: none;">
+            <div class="album-art" id="albumArt">
+                <i class="fas fa-music"></i>
+            </div>
+            <div class="track-info">
+                <h3 id="currentTitle">Select a song to play</h3>
+                <p id="currentDescription">Beautiful melodies await...</p>
+            </div>
+
+            <div class="visualizer" id="visualizer" style="display: none;">
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+                <div class="bar"></div>
+            </div>
+
+            <div class="audio-controls">
+                <audio id="mainPlayer" controls preload="metadata">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+
+            <div class="control-buttons">
+                <button class="control-btn" id="prevBtn" disabled>
+                    <i class="fas fa-step-backward"></i>
+                </button>
+                <button class="control-btn play-btn" id="mainPlayBtn">
+                    <i class="fas fa-play"></i>
+                </button>
+                <button class="control-btn" id="nextBtn" disabled>
+                    <i class="fas fa-step-forward"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Songs Grid -->
+        <div class="songs-grid" id="songsGrid">
+            <!-- Songs will be loaded here -->
+        </div>
+
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Loading your music...</p>
+        </div>
+
+        <!-- No Songs -->
+        <div class="no-results" id="noSongs" style="display: none;">
+            <i class="fas fa-music"></i>
+            <h3>No songs found</h3>
+            <p>Try adjusting your search or check back later for new songs</p>
+        </div>
+    </div>
+
+    <script>
+        let allSongs = [];
+        let filteredSongs = [];
+        let currentSongIndex = -1;
+        let isPlaying = false;
+        let audioContext;
+        let analyser;
+        let dataArray;
+        let animationId;
+
+        // Mobile Navigation
+        const hamburger = document.getElementById('hamburger');
+        const navMenu = document.getElementById('navMenu');
+
+        hamburger.addEventListener('click', function() {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
+
+        // Close mobile menu when clicking on a link
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => {
+                hamburger.classList.remove('active');
+                navMenu.classList.remove('active');
+            });
+        });
+
+        // Load songs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSongs();
+            setupPlayer();
+            setupSearch();
+            setupAudioVisualizer();
+        });
+
+        async function loadSongs() {
+            try {
+                showLoading();
+                const response = await fetch('/api/songs');
+                if (response.ok) {
+                    allSongs = await response.json();
+                    filteredSongs = [...allSongs];
+                    displaySongs();
+                    updateStats();
+                } else {
+                    throw new Error('Failed to fetch songs');
+                }
+            } catch (error) {
+                console.error('Error loading songs:', error);
+                showError();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('songsGrid').style.display = 'none';
+            document.getElementById('noSongs').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showError() {
+            document.getElementById('noSongs').style.display = 'block';
+            document.getElementById('songsGrid').style.display = 'none';
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            let searchTimeout;
+
+            searchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    filterSongs(searchTerm);
+                }, 300);
+            });
+        }
+
+        function filterSongs(searchTerm) {
+            if (!searchTerm) {
+                filteredSongs = [...allSongs];
+            } else {
+                filteredSongs = allSongs.filter(song =>
+                    song.title.toLowerCase().includes(searchTerm) ||
+                    (song.description && song.description.toLowerCase().includes(searchTerm))
+                );
+            }
+            displaySongs();
+            updateStats();
+        }
+
+        function updateStats() {
+            document.getElementById('totalSongs').textContent = filteredSongs.length;
+        }
+
+        function displaySongs() {
+            const grid = document.getElementById('songsGrid');
+            const noSongs = document.getElementById('noSongs');
+
+            if (filteredSongs.length === 0) {
+                grid.style.display = 'none';
+                noSongs.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            noSongs.style.display = 'none';
+
+            grid.innerHTML = filteredSongs.map((song, index) => `
+                <div class="song-card" data-song-id="${song.id}" onclick="selectSong(${index})">
+                    <div class="song-header">
+                        <div class="song-icon">
+                            <i class="fas fa-music"></i>
+                        </div>
+                        <div class="song-info">
+                            <h4>${song.title}</h4>
+                            <p>Traditional Song</p>
+                        </div>
+                    </div>
+                    <p class="song-description">${song.description || 'A beautiful traditional Tai-Khamyang song'}</p>
+                    <div class="song-actions">
+                        <button class="play-button" onclick="event.stopPropagation(); playSong(${index})" ${!song.file_path ? 'disabled' : ''}>
+                            <i class="fas fa-play"></i> ${song.file_path ? 'Play' : 'Audio Coming Soon'}
+                        </button>
+                        <span class="duration">${song.file_path ? '--:--' : 'N/A'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setupPlayer() {
+            const mainPlayer = document.getElementById('mainPlayer');
+            const mainPlayBtn = document.getElementById('mainPlayBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+
+            mainPlayBtn.addEventListener('click', function() {
+                if (currentSongIndex === -1) return;
+
+                if (mainPlayer.paused) {
+                    mainPlayer.play().catch(e => console.log('Playback failed:', e));
+                } else {
+                    mainPlayer.pause();
+                }
+            });
+
+            mainPlayer.addEventListener('play', () => {
+                isPlaying = true;
+                updatePlayButton();
+                showVisualizer();
+                startVisualization();
+            });
+
+            mainPlayer.addEventListener('pause', () => {
+                isPlaying = false;
+                updatePlayButton();
+                stopVisualization();
+                hideVisualizer();
+            });
+
+            mainPlayer.addEventListener('ended', () => {
+                // Auto play next song
+                if (currentSongIndex < filteredSongs.length - 1) {
+                    playSong(currentSongIndex + 1);
+                } else {
+                    isPlaying = false;
+                    updatePlayButton();
+                    stopVisualization();
+                    hideVisualizer();
+                }
+            });
+
+            mainPlayer.addEventListener('timeupdate', () => {
+                updateDurationDisplay();
+            });
+
+            mainPlayer.addEventListener('loadedmetadata', () => {
+                updateDurationDisplay();
+            });
+
+            prevBtn.addEventListener('click', function() {
+                if (currentSongIndex > 0) {
+                    playSong(currentSongIndex - 1);
+                }
+            });
+
+            nextBtn.addEventListener('click', function() {
+                if (currentSongIndex < filteredSongs.length - 1) {
+                    playSong(currentSongIndex + 1);
+                }
+            });
+        }
+
+        function updateDurationDisplay() {
+            const player = document.getElementById('mainPlayer');
+            const currentSongCard = document.querySelector(`.song-card[data-song-id="${filteredSongs[currentSongIndex]?.id}"]`);
+
+            if (!currentSongCard || !player.duration) return;
+
+            const durationSpan = currentSongCard.querySelector('.duration');
+            if (durationSpan) {
+                durationSpan.textContent = formatTime(player.duration);
+            }
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        function updatePlayButton() {
+            const mainPlayBtn = document.getElementById('mainPlayBtn');
+            const icon = mainPlayBtn.querySelector('i');
+
+            if (isPlaying) {
+                icon.classList.replace('fa-play', 'fa-pause');
+            } else {
+                icon.classList.replace('fa-pause', 'fa-play');
+            }
+        }
+
+        function selectSong(index) {
+            currentSongIndex = index;
+            const song = filteredSongs[index];
+
+            // Update current playing info
+            document.getElementById('currentTitle').textContent = song.title;
+            document.getElementById('currentDescription').textContent = song.description || 'A beautiful traditional song';
+            document.getElementById('nowPlaying').style.display = 'block';
+
+            // Load audio if available
+            const mainPlayer = document.getElementById('mainPlayer');
+            if (song.file_path) {
+                mainPlayer.src = `/static/audio/${song.file_path}`;
+                mainPlayer.style.display = 'block';
+            } else {
+                mainPlayer.style.display = 'none';
+            }
+
+            // Update card states
+            document.querySelectorAll('.song-card').forEach((card, i) => {
+                card.classList.toggle('active', i === index);
+            });
+
+            // Update navigation buttons
+            document.getElementById('prevBtn').disabled = index === 0;
+            document.getElementById('nextBtn').disabled = index === filteredSongs.length - 1;
+
+            // Scroll to now playing
+            document.getElementById('nowPlaying').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function playSong(index) {
+            selectSong(index);
+            const song = filteredSongs[index];
+
+            if (!song.file_path) {
+                alert('Audio file not available for this song');
+                return;
+            }
+
+            const mainPlayer = document.getElementById('mainPlayer');
+            mainPlayer.play().catch(e => {
+                console.log('Playback failed:', e);
+                alert('Error playing audio: ' + e.message);
+            });
+        }
+
+        function showVisualizer() {
+            document.getElementById('visualizer').style.display = 'flex';
+        }
+
+        function hideVisualizer() {
+            document.getElementById('visualizer').style.display = 'none';
+        }
+
+        function setupAudioVisualizer() {
+            try {
+                // Create audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 64;
+
+                const mainPlayer = document.getElementById('mainPlayer');
+                const source = audioContext.createMediaElementSource(mainPlayer);
+                source.connect(analyser);
+                analyser.connect(audioContext.destination);
+
+                dataArray = new Uint8Array(analyser.frequencyBinCount);
+            } catch (e) {
+                console.error('Audio visualization setup failed:', e);
+            }
+        }
+
+        function startVisualization() {
+            if (!analyser) return;
+
+            const bars = document.querySelectorAll('.visualizer .bar');
+            if (bars.length === 0) return;
+
+            function updateVisualizer() {
+                analyser.getByteFrequencyData(dataArray);
+
+                for (let i = 0; i < bars.length; i++) {
+                    const value = dataArray[i * 2] / 255;
+                    const height = Math.max(10, value * 100);
+                    bars[i].style.height = `${height}%`;
+                }
+
+                animationId = requestAnimationFrame(updateVisualizer);
+            }
+
+            animationId = requestAnimationFrame(updateVisualizer);
+        }
+
+        function stopVisualization() {
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+                animationId = null;
+            }
+
+            // Reset bars to minimum height
+            const bars = document.querySelectorAll('.visualizer .bar');
+            bars.forEach(bar => {
+                bar.style.height = '10%';
+            });
+        }
+    </script>
+</body>
+</html>
