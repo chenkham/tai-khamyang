@@ -18,14 +18,16 @@ def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
 
+
     #registration table
     c.execute('''CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            phone TEXT NOT NULL,
-            address TEXT NOT NULL,
-            registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        )''')
+               id INTEGER PRIMARY KEY AUTOINCREMENT,
+               name TEXT NOT NULL,
+               phone TEXT UNIQUE NOT NULL,
+               address TEXT NOT NULL,
+               password TEXT NOT NULL,
+               registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+           )''')
 
     # Words table
     c.execute('''CREATE TABLE IF NOT EXISTS words (
@@ -86,28 +88,58 @@ def init_db():
 
 
 # Routes
+@app.route('/')
+def home():
+    if 'user_id' in session:  # Check if user is logged in
+        return render_template('index.html')  # Show main index for logged-in users
+    else:
+        return render_template('indexx.html')  # Show landing page for non-logged-in users
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('home'))  # redirect to indexx.html
+    return render_template('index.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    flash('You have been logged out')
+    return redirect(url_for('home'))  # back to indexx.html
+
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
         name = request.form.get('name')
         phone = request.form.get('phone')
         address = request.form.get('address')
+        password = request.form.get('password')
 
-        if not all([name, phone, address]):
+        # ✅ Validation
+        if not all([name, phone, address, password]):
             flash('Please fill all fields')
             return redirect(url_for('register'))
+
+        password = request.form.get('password')
+        hashed_password = generate_password_hash(password)
+
+        # Save name, phone, address, hashed_password into DB
 
         try:
             conn = sqlite3.connect('database.db')
             c = conn.cursor()
-            c.execute('INSERT INTO users (name, phone, address) VALUES (?, ?, ?)',
-                      (name, phone, address))
+            c.execute('INSERT INTO users (name, phone, address, password) VALUES (?, ?, ?, ?)',
+                      (name, phone, address, hashed_password))
             conn.commit()
-            conn.close()
 
-            # Set a session variable to indicate registration is complete
-            session['user_registered'] = True
-            return redirect(url_for('home'))
+            # ✅ Auto login after registration
+            session['user_logged_in'] = True
+            session['user_name'] = name
+            session['user_id'] = c.lastrowid
+
+            conn.close()
+            return redirect(url_for('dictionary'))
         except Exception as e:
             flash('Registration failed. Please try again.')
             print(f"Registration error: {e}")
@@ -115,12 +147,36 @@ def register():
 
     return render_template('register.html')
 
-@app.route('/')
-def home():
-    # Check if user is registered (only if not admin)
-    if 'admin_logged_in' not in session and not session.get('user_registered'):
-        return redirect(url_for('register'))
-    return render_template('index.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        phone = request.form.get('phone')
+        password = request.form.get('password')
+
+        conn = sqlite3.connect('database.db')
+        c = conn.cursor()
+        c.execute('SELECT id, password FROM users WHERE phone = ?', (phone,))
+        user = c.fetchone()
+        conn.close()
+
+        if user and check_password_hash(user[1], password):
+            session['user_id'] = user[0]
+            return redirect(url_for('dashboard'))
+        else:
+            flash('Invalid credentials')
+            return redirect(url_for('login'))
+
+    return render_template('login.html')
+
+
+# @app.route('/')
+# def home():
+#     # Check if user is registered (only if not admin)
+#     if 'admin_logged_in' not in session and not session.get('user_registered'):
+#         return redirect(url_for('register'))
+#     return render_template('index.html')
 
 
 @app.route('/dictionary')
@@ -131,6 +187,10 @@ def dictionary():
 @app.route('/songs')
 def songs():
     return render_template('songs.html')
+
+@app.route('/shopnow')
+def shop():
+    return render_template('shop.html')
 
 
 @app.route('/about')

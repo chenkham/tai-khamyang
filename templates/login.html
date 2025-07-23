@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - Tai-Khamyang Dictionary</title>
+    <title>Login - Tai-Khamyang Dictionary</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -14,7 +14,7 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -30,30 +30,30 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><radialGradient id="a" cx="50%" cy="50%"><stop offset="0%" stop-color="%23fff" stop-opacity="0.1"/><stop offset="100%" stop-color="%23fff" stop-opacity="0"/></radialGradient></defs><circle cx="200" cy="200" r="100" fill="url(%23a)"/><circle cx="800" cy="300" r="150" fill="url(%23a)"/><circle cx="300" cy="700" r="120" fill="url(%23a)"/><circle cx="700" cy="800" r="80" fill="url(%23a)"/></svg>') no-repeat center center;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><radialGradient id="a" cx="50%" cy="50%"><stop offset="0%" stop-color="%23fff" stop-opacity="0.1"/><stop offset="100%" stop-color="%23fff" stop-opacity="0"/></radialGradient></defs><circle cx="150" cy="150" r="80" fill="url(%23a)"/><circle cx="850" cy="250" r="120" fill="url(%23a)"/><circle cx="250" cy="750" r="100" fill="url(%23a)"/><circle cx="750" cy="850" r="90" fill="url(%23a)"/></svg>') no-repeat center center;
             background-size: cover;
             pointer-events: none;
         }
 
-        .register-container {
+        .login-container {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             width: 100%;
-            max-width: 450px;
+            max-width: 400px;
             position: relative;
             border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .register-header {
+        .login-header {
             text-align: center;
             margin-bottom: 40px;
         }
 
-        .register-header h1 {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .login-header h1 {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -62,7 +62,7 @@
             margin-bottom: 10px;
         }
 
-        .register-header p {
+        .login-header p {
             color: #666;
             font-size: 16px;
         }
@@ -98,8 +98,8 @@
 
         .form-group input:focus {
             outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            border-color: #f5576c;
+            box-shadow: 0 0 0 3px rgba(245, 87, 108, 0.1);
             transform: translateY(-2px);
         }
 
@@ -114,7 +114,7 @@
         }
 
         .form-group input:focus + .input-icon {
-            color: #667eea;
+            color: #f5576c;
         }
 
         .password-toggle {
@@ -129,13 +129,41 @@
         }
 
         .password-toggle:hover {
-            color: #667eea;
+            color: #f5576c;
         }
 
-        .btn-register {
+        .forgot-password {
+            text-align: right;
+            margin-bottom: 30px;
+        }
+
+        .forgot-password a {
+            color: #f5576c;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .forgot-password a::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            transition: width 0.3s ease;
+        }
+
+        .forgot-password a:hover::after {
+            width: 100%;
+        }
+
+        .btn-login {
             width: 100%;
             padding: 16px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             color: white;
             border: none;
             border-radius: 12px;
@@ -149,7 +177,7 @@
             overflow: hidden;
         }
 
-        .btn-register::before {
+        .btn-login::before {
             content: '';
             position: absolute;
             top: 0;
@@ -160,51 +188,51 @@
             transition: left 0.5s;
         }
 
-        .btn-register:hover::before {
+        .btn-login:hover::before {
             left: 100%;
         }
 
-        .btn-register:hover {
+        .btn-login:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
         }
 
-        .btn-register:active {
+        .btn-login:active {
             transform: translateY(0);
         }
 
-        .login-link {
+        .register-link {
             text-align: center;
             margin-top: 30px;
             padding-top: 30px;
             border-top: 1px solid #eee;
         }
 
-        .login-link p {
+        .register-link p {
             color: #666;
             margin-bottom: 10px;
         }
 
-        .login-link a {
-            color: #667eea;
+        .register-link a {
+            color: #f5576c;
             text-decoration: none;
             font-weight: 600;
             transition: all 0.3s ease;
             position: relative;
         }
 
-        .login-link a::after {
+        .register-link a::after {
             content: '';
             position: absolute;
             bottom: -2px;
             left: 0;
             width: 0;
             height: 2px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
             transition: width 0.3s ease;
         }
 
-        .login-link a:hover::after {
+        .register-link a:hover::after {
             width: 100%;
         }
 
@@ -243,13 +271,19 @@
             color: #721c24;
         }
 
+        .alert.success {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.1);
+            color: #155724;
+        }
+
         @media (max-width: 768px) {
-            .register-container {
+            .login-container {
                 margin: 20px;
                 padding: 30px 25px;
             }
 
-            .register-header h1 {
+            .login-header h1 {
                 font-size: 28px;
             }
 
@@ -284,24 +318,24 @@
         }
 
         .floating-shapes::before {
-            width: 100px;
-            height: 100px;
-            top: 20%;
-            left: 10%;
+            width: 120px;
+            height: 120px;
+            top: 15%;
+            right: 15%;
             animation-delay: 0s;
         }
 
         .floating-shapes::after {
-            width: 150px;
-            height: 150px;
-            top: 60%;
-            right: 10%;
+            width: 80px;
+            height: 80px;
+            bottom: 20%;
+            left: 10%;
             animation-delay: 3s;
         }
 
         @keyframes float {
             0%, 100% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-20px) rotate(10deg); }
+            50% { transform: translateY(-25px) rotate(-10deg); }
         }
     </style>
 </head>
@@ -311,10 +345,10 @@
         <i class="fas fa-arrow-left"></i>
     </a>
 
-    <div class="register-container">
-        <div class="register-header">
-            <h1>Join Our Community</h1>
-            <p>Create your account to explore Tai-Khamyang culture</p>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>Welcome Back</h1>
+            <p>Sign in to access your cultural resources</p>
         </div>
 
         {% with messages = get_flashed_messages() %}
@@ -327,14 +361,6 @@
 
         <form method="POST">
             <div class="form-group">
-                <label for="name">Full Name</label>
-                <div class="input-wrapper">
-                    <input type="text" id="name" name="name" required>
-                    <i class="fas fa-user input-icon"></i>
-                </div>
-            </div>
-
-            <div class="form-group">
                 <label for="phone">Phone Number</label>
                 <div class="input-wrapper">
                     <input type="tel" id="phone" name="phone" required>
@@ -343,46 +369,33 @@
             </div>
 
             <div class="form-group">
-                <label for="address">Address</label>
-                <div class="input-wrapper">
-                    <input type="text" id="address" name="address" required>
-                    <i class="fas fa-map-marker-alt input-icon"></i>
-                </div>
-            </div>
-
-            <div class="form-group">
                 <label for="password">Password</label>
                 <div class="input-wrapper">
-                    <input type="password" id="password" name="password" required minlength="6">
+                    <input type="password" id="password" name="password" required>
                     <i class="fas fa-lock input-icon"></i>
-                    <i class="fas fa-eye password-toggle" onclick="togglePassword('password')"></i>
+                    <i class="fas fa-eye password-toggle" onclick="togglePassword()"></i>
                 </div>
             </div>
 
-            <div class="form-group">
-                <label for="confirm_password">Confirm Password</label>
-                <div class="input-wrapper">
-                    <input type="password" id="confirm_password" name="confirm_password" required minlength="6">
-                    <i class="fas fa-lock input-icon"></i>
-                    <i class="fas fa-eye password-toggle" onclick="togglePassword('confirm_password')"></i>
-                </div>
+            <div class="forgot-password">
+                <a href="/forgot-password">Forgot your password?</a>
             </div>
 
-            <button type="submit" class="btn-register">
-                <i class="fas fa-user-plus"></i> Create Account
+            <button type="submit" class="btn-login">
+                <i class="fas fa-sign-in-alt"></i> Sign In
             </button>
         </form>
 
-        <div class="login-link">
-            <p>Already have an account?</p>
-            <a href="/login">Login here</a>
+        <div class="register-link">
+            <p>Don't have an account?</p>
+            <a href="/register">Register here</a>
         </div>
     </div>
 
     <script>
-        function togglePassword(fieldId) {
-            const field = document.getElementById(fieldId);
-            const toggle = field.nextElementSibling.nextElementSibling;
+        function togglePassword() {
+            const field = document.getElementById('password');
+            const toggle = document.querySelector('.password-toggle');
 
             if (field.type === 'password') {
                 field.type = 'text';
@@ -395,24 +408,6 @@
             }
         }
 
-        // Form validation
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
-
-            if (password !== confirmPassword) {
-                e.preventDefault();
-                alert('Passwords do not match!');
-                return false;
-            }
-
-            if (password.length < 6) {
-                e.preventDefault();
-                alert('Password must be at least 6 characters long!');
-                return false;
-            }
-        });
-
         // Add floating animation to form inputs
         document.querySelectorAll('input').forEach(input => {
             input.addEventListener('focus', function() {
@@ -422,6 +417,18 @@
             input.addEventListener('blur', function() {
                 this.parentElement.style.transform = 'translateY(0)';
             });
+        });
+
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+
+            if (!phone || !password) {
+                e.preventDefault();
+                alert('Please fill in all fields!');
+                return false;
+            }
         });
     </script>
 </body>
