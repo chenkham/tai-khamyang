@@ -18,6 +18,15 @@ def init_db():
     conn = sqlite3.connect('database.db')
     c = conn.cursor()
 
+    #registration table
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            phone TEXT NOT NULL,
+            address TEXT NOT NULL,
+            registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )''')
+
     # Words table
     c.execute('''CREATE TABLE IF NOT EXISTS words (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -77,8 +86,40 @@ def init_db():
 
 
 # Routes
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        phone = request.form.get('phone')
+        address = request.form.get('address')
+
+        if not all([name, phone, address]):
+            flash('Please fill all fields')
+            return redirect(url_for('register'))
+
+        try:
+            conn = sqlite3.connect('database.db')
+            c = conn.cursor()
+            c.execute('INSERT INTO users (name, phone, address) VALUES (?, ?, ?)',
+                      (name, phone, address))
+            conn.commit()
+            conn.close()
+
+            # Set a session variable to indicate registration is complete
+            session['user_registered'] = True
+            return redirect(url_for('home'))
+        except Exception as e:
+            flash('Registration failed. Please try again.')
+            print(f"Registration error: {e}")
+            return redirect(url_for('register'))
+
+    return render_template('register.html')
+
 @app.route('/')
 def home():
+    # Check if user is registered (only if not admin)
+    if 'admin_logged_in' not in session and not session.get('user_registered'):
+        return redirect(url_for('register'))
     return render_template('index.html')
 
 

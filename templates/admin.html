@@ -21,6 +21,9 @@
                 <a href="/shopnow" class="nav-link">shop</a>
                 <a href="/about" class="nav-link">About</a>
                 <a href="/admin" class="nav-link">Admin</a>
+                <a href="/admin/logout" class="nav-link logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
             </div>
             <div class="hamburger" id="hamburger">
                 <span></span>
@@ -262,6 +265,15 @@
                 });
             });
         }
+
+        // Add confirmation for logout
+        document.querySelectorAll('.logout-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                if (!confirm('Are you sure you want to logout?')) {
+                    e.preventDefault();
+                }
+            });
+        });
 
         // Load Words
         async function loadWords() {
