@@ -7,20 +7,42 @@ import uuid
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore
+from dotenv import load_dotenv
 
+# Load environment variables first
+try:
+    load_dotenv()
+    print(".env file loaded successfully")
+except Exception as e:
+    print(f"Warning: Could not load .env file - {e}")
+
+# Initialize Flask app with configuration from environment
 app = Flask(__name__)
 
-cred = credentials.Certificate('tai-khamyang-app-firebase-adminsdk-fbsvc-f89b5718fc.json')
-firebase_admin.initialize_app(cred)
+# Configure secret key - use environment variable or fallback for development
+app.secret_key = os.getenv('FLASK_SECRET_KEY', 'development-key-only-change-in-production')
+if app.secret_key == 'development-key-only-change-in-production':
+    print("WARNING: Using development secret key. For production, set FLASK_SECRET_KEY in .env file")
 
-db = firestore.client()
-
-app.secret_key = 'tai_khamyang_secret_key_2025'  # Change this in production
+# Configure upload folder
 app.config['UPLOAD_FOLDER'] = 'static/audio'
-
-# Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+# Firebase initialization with better error handling
+try:
+    firebase_admin_sdk_path = os.getenv("FIREBASE_ADMIN_SDK_PATH")
+    if not firebase_admin_sdk_path:
+        raise ValueError("FIREBASE_ADMIN_SDK_PATH not found in environment variables")
+
+    if not os.path.exists(firebase_admin_sdk_path):
+        raise FileNotFoundError(f"Firebase admin SDK file not found at {firebase_admin_sdk_path}")
+
+    cred = credentials.Certificate(firebase_admin_sdk_path)
+    firebase_admin.initialize_app(cred)
+    db = firestore.client()
+    print("Firebase initialized successfully")
+except Exception as e:
+    print(f"ERROR: Firebase initialization failed - {e}")
 
 
 
