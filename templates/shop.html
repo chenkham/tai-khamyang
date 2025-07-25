@@ -8,11 +8,10 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
             <div class="nav-logo">
-                <h2>TAI KHAMYANG SHOP</h2>
+                <h2>TAI KHAMYANG</h2>
             </div>
             <div class="nav-menu" id="navMenu">
                 <a href="/" class="nav-link">Home</a>
@@ -31,16 +30,15 @@
         </div>
     </nav>
 
-    <!-- Shop Mode Selection -->
     <section class="shop-mode">
         <div class="container">
             <h1 class="page-title">Traditional Tai-Khamyang Marketplace</h1>
             <div class="mode-selector">
-                <button class="mode-btn active" id="buyerMode" onclick="switchMode('buyer')">
+                <button class="mode-btn active" data-mode="buyer">
                     <i class="fas fa-shopping-bag"></i>
                     <span>Buyer</span>
                 </button>
-                <button class="mode-btn" id="sellerMode" onclick="switchMode('seller')">
+                <button class="mode-btn" data-mode="seller">
                     <i class="fas fa-store"></i>
                     <span>Seller</span>
                 </button>
@@ -48,251 +46,106 @@
         </div>
     </section>
 
-    <!-- Buyer Section -->
     <section class="buyer-section" id="buyerSection">
-        <!-- Search and Filter Bar -->
         <div class="search-section">
             <div class="container">
                 <div class="search-bar">
                     <div class="search-input-group">
                         <i class="fas fa-search"></i>
-                        <input type="text" id="searchInput" placeholder="Search traditional dresses, accessories..." onkeyup="searchProducts()">
+                        <input type="text" id="searchInput" placeholder="Search traditional dresses, accessories...">
                     </div>
                     <div class="filter-buttons">
-                        <button class="filter-btn active" onclick="filterProducts('all')">All</button>
-                        <button class="filter-btn" onclick="filterProducts('women')">Women's Dress</button>
-                        <button class="filter-btn" onclick="filterProducts('men')">Men's Dress</button>
-                        <button class="filter-btn" onclick="filterProducts('accessories')">Accessories</button>
-                        <button class="filter-btn" onclick="filterProducts('jewelry')">Jewelry</button>
+                        <button class="filter-btn active" data-category="all">All</button>
+                        <button class="filter-btn" data-category="women">Women's Dress</button>
+                        <button class="filter-btn" data-category="men">Men's Dress</button>
+                        <button class="filter-btn" data-category="accessories">Accessories</button>
+                        <button class="filter-btn" data-category="jewelry">Jewelry</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Products Grid -->
         <div class="products-section">
             <div class="container">
                 <div class="products-grid" id="productsGrid">
-                    <!-- Sample Products -->
-                    <div class="product-card" data-category="women" onclick="openProductDetail('Traditional Tai-Khamyang Women Dress', 'Beautiful handwoven traditional dress with intricate patterns', '₹2,999', 'https://via.placeholder.com/300x400', 'Seller: Maya Khamyang', '4.8', '25')">
-                        <div class="product-image">
-                            <img src="https://via.placeholder.com/300x400" alt="Traditional Dress">
-                            <div class="product-badge">Featured</div>
-                            <div class="product-actions">
-                                <button class="action-btn" onclick="shareProduct(event, 'Traditional Tai-Khamyang Women Dress')">
-                                    <i class="fas fa-share-alt"></i>
-                                </button>
-                                <button class="action-btn" onclick="addToWishlist(event, 'product1')">
-                                    <i class="fas fa-heart"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product-info">
-                            <h3>Traditional Tai-Khamyang Women Dress</h3>
-                            <div class="product-rating">
-                                <div class="stars">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                </div>
-                                <span>(25 reviews)</span>
-                            </div>
-                            <p class="seller-info">By: Maya Khamyang</p>
-                            <div class="price-section">
-                                <span class="current-price">₹2,999</span>
-                                <span class="original-price">₹3,499</span>
-                                <span class="discount">14% OFF</span>
-                            </div>
-                        </div>
                     </div>
-
-                    <div class="product-card" data-category="men" onclick="openProductDetail('Traditional Tai-Khamyang Men Outfit', 'Authentic men traditional wear with cultural motifs', '₹2,499', 'https://via.placeholder.com/300x400', 'Seller: Ranjan Khamyang', '4.6', '18')">
-                        <div class="product-image">
-                            <img src="https://via.placeholder.com/300x400" alt="Men Traditional Outfit">
-                            <div class="product-actions">
-                                <button class="action-btn" onclick="shareProduct(event, 'Traditional Tai-Khamyang Men Outfit')">
-                                    <i class="fas fa-share-alt"></i>
-                                </button>
-                                <button class="action-btn" onclick="addToWishlist(event, 'product2')">
-                                    <i class="fas fa-heart"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product-info">
-                            <h3>Traditional Tai-Khamyang Men Outfit</h3>
-                            <div class="product-rating">
-                                <div class="stars">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="far fa-star"></i>
-                                </div>
-                                <span>(18 reviews)</span>
-                            </div>
-                            <p class="seller-info">By: Ranjan Khamyang</p>
-                            <div class="price-section">
-                                <span class="current-price">₹2,499</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="product-card" data-category="accessories" onclick="openProductDetail('Traditional Khamyang Scarf', 'Handwoven colorful traditional scarf', '₹599', 'https://via.placeholder.com/300x400', 'Seller: Sunita Khamyang', '4.9', '42')">
-                        <div class="product-image">
-                            <img src="https://via.placeholder.com/300x400" alt="Traditional Scarf">
-                            <div class="product-badge bestseller">Bestseller</div>
-                            <div class="product-actions">
-                                <button class="action-btn" onclick="shareProduct(event, 'Traditional Khamyang Scarf')">
-                                    <i class="fas fa-share-alt"></i>
-                                </button>
-                                <button class="action-btn" onclick="addToWishlist(event, 'product3')">
-                                    <i class="fas fa-heart"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product-info">
-                            <h3>Traditional Khamyang Scarf</h3>
-                            <div class="product-rating">
-                                <div class="stars">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                </div>
-                                <span>(42 reviews)</span>
-                            </div>
-                            <p class="seller-info">By: Sunita Khamyang</p>
-                            <div class="price-section">
-                                <span class="current-price">₹599</span>
-                                <span class="original-price">₹799</span>
-                                <span class="discount">25% OFF</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="product-card" data-category="jewelry" onclick="openProductDetail('Traditional Silver Necklace', 'Handcrafted silver necklace with cultural designs', '₹1,299', 'https://via.placeholder.com/300x400', 'Seller: Priya Khamyang', '4.7', '31')">
-                        <div class="product-image">
-                            <img src="https://via.placeholder.com/300x400" alt="Silver Necklace">
-                            <div class="product-actions">
-                                <button class="action-btn" onclick="shareProduct(event, 'Traditional Silver Necklace')">
-                                    <i class="fas fa-share-alt"></i>
-                                </button>
-                                <button class="action-btn" onclick="addToWishlist(event, 'product4')">
-                                    <i class="fas fa-heart"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product-info">
-                            <h3>Traditional Silver Necklace</h3>
-                            <div class="product-rating">
-                                <div class="stars">
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                    <i class="fas fa-star"></i>
-                                </div>
-                                <span>(31 reviews)</span>
-                            </div>
-                            <p class="seller-info">By: Priya Khamyang</p>
-                            <div class="price-section">
-                                <span class="current-price">₹1,299</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </section>
 
-    <!-- Seller Section -->
     <section class="seller-section hidden" id="sellerSection">
         <div class="container">
-            <!-- Seller Auth -->
             <div class="seller-auth" id="sellerAuth">
                 <div class="auth-container">
                     <div class="auth-tabs">
-                        <button class="auth-tab active" onclick="showAuthForm('login')">Login</button>
-                        <button class="auth-tab" onclick="showAuthForm('register')">Register</button>
+                        <button class="auth-tab active" data-form="login">Login</button>
+                        <button class="auth-tab" data-form="register">Register</button>
                     </div>
-
-                    <!-- Login Form -->
-                    <div class="auth-form" id="loginForm">
+                    <form class="auth-form" id="loginForm">
                         <h3>Seller Login</h3>
                         <div class="form-group">
                             <i class="fas fa-envelope"></i>
-                            <input type="email" placeholder="Email Address" id="loginEmail">
+                            <input type="email" placeholder="Email Address" id="loginEmail" required>
                         </div>
                         <div class="form-group">
                             <i class="fas fa-lock"></i>
-                            <input type="password" placeholder="Password" id="loginPassword">
+                            <input type="password" placeholder="Password" id="loginPassword" required>
                         </div>
-                        <button class="auth-btn" onclick="sellerLogin()">Login to Dashboard</button>
-                    </div>
-
-                    <!-- Register Form -->
-                    <div class="auth-form hidden" id="registerForm">
+                        <button type="submit" class="auth-btn">Login to Dashboard</button>
+                    </form>
+                    <form class="auth-form hidden" id="registerForm">
                         <h3>Become a Seller</h3>
                         <div class="form-group">
                             <i class="fas fa-user"></i>
-                            <input type="text" placeholder="Full Name" id="regName">
+                            <input type="text" placeholder="Full Name" id="regName" required>
                         </div>
                         <div class="form-group">
                             <i class="fas fa-envelope"></i>
-                            <input type="email" placeholder="Email Address" id="regEmail">
+                            <input type="email" placeholder="Email Address" id="regEmail" required>
                         </div>
                         <div class="form-group">
                             <i class="fas fa-phone"></i>
-                            <input type="tel" placeholder="Phone Number" id="regPhone">
+                            <input type="tel" id="regPhone" placeholder="Phone Number" required>
+                        </div>
+                        <div class="form-group">
+                            <i class="fab fa-whatsapp"></i>
+                            <input type="tel" id="regWhatsapp" placeholder="WhatsApp Number (with country code)" required>
                         </div>
                         <div class="form-group">
                             <i class="fas fa-store"></i>
-                            <input type="text" placeholder="Shop Name" id="regShopName">
+                            <input type="text" placeholder="Shop Name" id="regShopName" required>
                         </div>
                         <div class="form-group">
                             <i class="fas fa-lock"></i>
-                            <input type="password" placeholder="Password" id="regPassword">
+                            <input type="password" placeholder="Password" id="regPassword" required>
                         </div>
-                        <button class="auth-btn" onclick="sellerRegister()">Create Seller Account</button>
-                    </div>
+                        <button type="submit" class="auth-btn">Create Seller Account</button>
+                    </form>
                 </div>
             </div>
 
-            <!-- Seller Dashboard -->
             <div class="seller-dashboard hidden" id="sellerDashboard">
                 <div class="dashboard-header">
-                    <h2>Welcome to Your Dashboard</h2>
-                    <button class="logout-btn" onclick="sellerLogout()">
+                    <h2 id="dashboardWelcome">Welcome to Your Dashboard</h2>
+                    <button class="logout-btn" id="sellerLogoutBtn">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
                 </div>
-
                 <div class="dashboard-nav">
-                    <button class="dashboard-btn active" onclick="showDashboardSection('add')">
+                    <button class="dashboard-btn active" data-section="add">
                         <i class="fas fa-plus-circle"></i> Add Product
                     </button>
-                    <button class="dashboard-btn" onclick="showDashboardSection('manage')">
+                    <button class="dashboard-btn" data-section="manage">
                         <i class="fas fa-boxes"></i> Manage Products
                     </button>
-                    <button class="dashboard-btn" onclick="showDashboardSection('orders')">
-                        <i class="fas fa-shopping-cart"></i> Orders
-                    </button>
-                    <button class="dashboard-btn" onclick="showDashboardSection('analytics')">
-                        <i class="fas fa-chart-line"></i> Analytics
-                    </button>
                 </div>
-
-                <!-- Add Product Section -->
                 <div class="dashboard-section" id="addProductSection">
-                    <h3>Add New Product</h3>
-                    <div class="product-form">
+                     <h3>Add New Product</h3>
+                    <form class="product-form" id="addProductForm">
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Product Name</label>
-                                <input type="text" placeholder="e.g., Traditional Tai-Khamyang Dress" id="productName">
+                                <input type="text" placeholder="e.g., Traditional Tai-Khamyang Dress" id="productName" required>
                             </div>
                             <div class="form-group">
                                 <label>Category</label>
@@ -304,598 +157,466 @@
                                 </select>
                             </div>
                         </div>
-
                         <div class="form-row">
                             <div class="form-group">
                                 <label>Price (₹)</label>
-                                <input type="number" placeholder="2999" id="productPrice">
+                                <input type="number" placeholder="2999" id="productPrice" required>
                             </div>
                             <div class="form-group">
                                 <label>Original Price (₹)</label>
                                 <input type="number" placeholder="3499" id="productOriginalPrice">
                             </div>
                         </div>
-
                         <div class="form-group">
                             <label>Product Description</label>
-                            <textarea placeholder="Describe your traditional product..." id="productDescription"></textarea>
+                            <textarea placeholder="Describe your traditional product..." id="productDescription" required></textarea>
                         </div>
-
-                        <div class="form-group">
-                            <label>Product Images</label>
-                            <div class="image-upload">
-                                <input type="file" id="productImages" multiple accept="image/*" onchange="previewImages()">
-                                <div class="upload-area" onclick="document.getElementById('productImages').click()">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <p>Click to upload images or drag and drop</p>
-                                    <small>You can upload multiple images</small>
-                                </div>
-                                <div class="image-preview" id="imagePreview"></div>
-                            </div>
-                        </div>
-
                         <div class="form-row">
                             <div class="form-group">
-                                <label>Sizes Available</label>
-                                <div class="size-options">
-                                    <label><input type="checkbox" value="XS"> XS</label>
-                                    <label><input type="checkbox" value="S"> S</label>
-                                    <label><input type="checkbox" value="M"> M</label>
-                                    <label><input type="checkbox" value="L"> L</label>
-                                    <label><input type="checkbox" value="XL"> XL</label>
-                                    <label><input type="checkbox" value="XXL"> XXL</label>
-                                </div>
-                            </div>
-                            <div class="form-group">
                                 <label>Stock Quantity</label>
-                                <input type="number" placeholder="10" id="productStock">
+                                <input type="number" placeholder="10" id="productStock" required>
                             </div>
                         </div>
-
-                        <button class="submit-btn" onclick="addProduct()">
+                        <button type="submit" class="submit-btn">
                             <i class="fas fa-plus"></i> Add Product
+                        </button>
+                    </form>
+                </div>
+                <div class="dashboard-section hidden" id="manageProductsSection">
+                    <h3>Manage Your Products</h3>
+                    <div class="products-table" id="sellerProductsTable">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div class="product-detail-popup hidden" id="productDetailPopup">
+        <div class="popup-overlay"></div>
+        <div class="popup-content">
+            <button class="close-btn" id="popupCloseBtn">
+                <i class="fas fa-times"></i>
+            </button>
+            <div class="product-detail-content">
+                <div class="product-images">
+                    <img id="detailMainImage" src="" alt="Product">
+                </div>
+                <div class="product-details">
+                    <h2 id="detailTitle"></h2>
+                    <p class="detail-seller" id="detailSeller"></p>
+                    <p class="detail-description" id="detailDescription"></p>
+                    <div class="detail-price">
+                        <span class="detail-current-price" id="detailPrice"></span>
+                        <span class="detail-original-price" id="detailOriginalPrice"></span>
+                    </div>
+                    <div class="detail-actions">
+                        <button class="buy-now-btn" id="buyOnWhatsAppBtn">
+                            <i class="fab fa-whatsapp"></i> Buy on WhatsApp
                         </button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <!-- Manage Products Section -->
-                <div class="dashboard-section hidden" id="manageProductsSection">
-                    <h3>Manage Your Products</h3>
-                    <div class="products-table">
-                        <div class="table-header">
+    <script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- STATE ---
+    let products = [];
+    let currentUser = null;
+
+    // --- SELECTORS ---
+    const buyerSection = document.getElementById('buyerSection');
+    const sellerSection = document.getElementById('sellerSection');
+    const productsGrid = document.getElementById('productsGrid');
+    const searchInput = document.getElementById('searchInput');
+    const sellerAuth = document.getElementById('sellerAuth');
+    const sellerDashboard = document.getElementById('sellerDashboard');
+
+    // --- INITIALIZATION ---
+    const initializeApp = () => {
+        setupEventListeners();
+        switchMode('buyer'); // Default to buyer mode
+    };
+
+    // --- EVENT LISTENERS ---
+    const setupEventListeners = () => {
+        // Mode Switching
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.addEventListener('click', () => switchMode(btn.dataset.mode));
+        });
+
+        // Buyer: Product Filtering and Search
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelector('.filter-btn.active').classList.remove('active');
+                btn.classList.add('active');
+                filterProducts(btn.dataset.category);
+            });
+        });
+        searchInput.addEventListener('keyup', handleSearch);
+
+        // Buyer: Product Click (Event Delegation)
+        productsGrid.addEventListener('click', (e) => {
+            const card = e.target.closest('.product-card');
+            if (card) {
+                const productId = card.dataset.productId;
+                const product = products.find(p => p.id === productId);
+                if (product) openProductDetail(product);
+            }
+        });
+
+        // Seller: Auth Form Switching
+        document.querySelectorAll('.auth-tab').forEach(tab => {
+            tab.addEventListener('click', () => showAuthForm(tab.dataset.form));
+        });
+
+        // Seller: Forms
+        document.getElementById('loginForm').addEventListener('submit', handleSellerLogin);
+        document.getElementById('registerForm').addEventListener('submit', handleSellerRegister);
+        document.getElementById('addProductForm').addEventListener('submit', handleAddProduct);
+        document.getElementById('sellerLogoutBtn').addEventListener('click', handleSellerLogout);
+
+        // Seller: Dashboard Navigation
+        document.querySelectorAll('.dashboard-btn').forEach(btn => {
+            btn.addEventListener('click', () => showDashboardSection(btn.dataset.section));
+        });
+
+        // Popup Close Button
+        document.getElementById('popupCloseBtn').addEventListener('click', closeProductDetail);
+        document.querySelector('.product-detail-popup .popup-overlay').addEventListener('click', closeProductDetail);
+
+        // Manage Products: Delete Button (Event Delegation)
+        document.getElementById('sellerProductsTable').addEventListener('click', (e) => {
+            if (e.target.closest('.delete-btn')) {
+                const button = e.target.closest('.delete-btn');
+                const productId = button.dataset.productId;
+                if (confirm('Are you sure you want to delete this product?')) {
+                    deleteProduct(productId);
+                }
+            }
+        });
+    };
+
+    // --- MODE SWITCHING ---
+    const switchMode = (mode) => {
+        document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelector(`.mode-btn[data-mode="${mode}"]`).classList.add('active');
+
+        if (mode === 'buyer') {
+            buyerSection.classList.remove('hidden');
+            sellerSection.classList.add('hidden');
+            loadProducts();
+        } else {
+            buyerSection.classList.add('hidden');
+            sellerSection.classList.remove('hidden');
+            checkSellerLoginStatus();
+        }
+    };
+
+    // --- BUYER FUNCTIONS ---
+    const loadProducts = async () => {
+        try {
+            const response = await fetch('/api/products');
+            const data = await response.json();
+            if (data.success) {
+                products = data.products;
+                displayProducts(products);
+            } else {
+                console.error('Failed to load products:', data.message);
+                productsGrid.innerHTML = '<p>Could not load products.</p>';
+            }
+        } catch (error) {
+            console.error('Error fetching products:', error);
+            productsGrid.innerHTML = '<p>Error loading products.</p>';
+        }
+    };
+
+    const displayProducts = (productsToDisplay) => {
+        productsGrid.innerHTML = '';
+        if (productsToDisplay.length === 0) {
+            productsGrid.innerHTML = '<p>No products found.</p>';
+            return;
+        }
+        productsToDisplay.forEach(product => {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            card.dataset.productId = product.id;
+
+            const originalPrice = parseFloat(product.original_price);
+            const currentPrice = parseFloat(product.price);
+            let discountHTML = '';
+            if (originalPrice > currentPrice) {
+                const discount = Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
+                discountHTML = `<span class="discount">${discount}% OFF</span>`;
+            }
+
+            card.innerHTML = `
+                <div class="product-image">
+                    <img src="https://via.placeholder.com/300x400" alt="${product.name}">
+                </div>
+                <div class="product-info">
+                    <h3>${product.name}</h3>
+                    <p class="seller-info">By: ${product.seller_info?.business_name || 'N/A'}</p>
+                    <div class="price-section">
+                        <span class="current-price">₹${currentPrice.toFixed(2)}</span>
+                        ${originalPrice > currentPrice ? `<span class="original-price">₹${originalPrice.toFixed(2)}</span>` : ''}
+                        ${discountHTML}
+                    </div>
+                </div>`;
+            productsGrid.appendChild(card);
+        });
+    };
+
+    const handleSearch = () => {
+        const query = searchInput.value.toLowerCase();
+        const filtered = products.filter(p => p.name.toLowerCase().includes(query) || p.description.toLowerCase().includes(query));
+        displayProducts(filtered);
+    };
+
+    const filterProducts = (category) => {
+        if (category === 'all') {
+            displayProducts(products);
+        } else {
+            const filtered = products.filter(p => p.category.toLowerCase() === category);
+            displayProducts(filtered);
+        }
+    };
+
+    // --- PRODUCT DETAIL POPUP ---
+    const openProductDetail = (product) => {
+        const popup = document.getElementById('productDetailPopup');
+        document.getElementById('detailTitle').textContent = product.name;
+        document.getElementById('detailDescription').textContent = product.description;
+        document.getElementById('detailSeller').textContent = `Sold by: ${product.seller_info?.business_name || 'N/A'}`;
+        document.getElementById('detailPrice').textContent = `₹${parseFloat(product.price).toFixed(2)}`;
+
+        const originalPriceEl = document.getElementById('detailOriginalPrice');
+        if (product.original_price > product.price) {
+            originalPriceEl.textContent = `₹${parseFloat(product.original_price).toFixed(2)}`;
+            originalPriceEl.style.display = 'inline';
+        } else {
+            originalPriceEl.style.display = 'none';
+        }
+
+        // WhatsApp button logic
+        const buyBtn = document.getElementById('buyOnWhatsAppBtn');
+        if (product.seller_info?.whatsapp) {
+            const message = encodeURIComponent(`Hi, I'm interested in your product: ${product.name} (Price: ₹${product.price})`);
+            const whatsappUrl = `https://wa.me/${product.seller_info.whatsapp}?text=${message}`;
+            buyBtn.onclick = () => window.open(whatsappUrl, '_blank');
+            buyBtn.disabled = false;
+        } else {
+            buyBtn.onclick = null;
+            buyBtn.disabled = true;
+        }
+
+        popup.classList.remove('hidden');
+    };
+
+    const closeProductDetail = () => {
+        document.getElementById('productDetailPopup').classList.add('hidden');
+    };
+
+
+    // --- SELLER FUNCTIONS ---
+    const checkSellerLoginStatus = () => {
+        if (currentUser) {
+            showSellerDashboard();
+        } else {
+            showSellerAuth();
+        }
+    };
+
+    const showSellerAuth = () => {
+        sellerAuth.classList.remove('hidden');
+        sellerDashboard.classList.add('hidden');
+        showAuthForm('login');
+    };
+
+    const showSellerDashboard = () => {
+        sellerAuth.classList.add('hidden');
+        sellerDashboard.classList.remove('hidden');
+        document.getElementById('dashboardWelcome').textContent = `Welcome, ${currentUser.business_name}`;
+        showDashboardSection('add'); // Default to 'add product' view
+        loadSellerProducts();
+    };
+
+    const showAuthForm = (formType) => {
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector(`.auth-tab[data-form="${formType}"]`).classList.add('active');
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.add('hidden'));
+        document.getElementById(`${formType}Form`).classList.remove('hidden');
+    };
+
+    const handleSellerLogin = async (e) => {
+        e.preventDefault();
+        const data = {
+            email: document.getElementById('loginEmail').value,
+            password: document.getElementById('loginPassword').value,
+        };
+        try {
+            const response = await fetch('/api/seller/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                currentUser = result.seller;
+                showSellerDashboard();
+            } else {
+                alert(`Login failed: ${result.message}`);
+            }
+        } catch (error) {
+            alert('An error occurred during login.');
+        }
+    };
+
+    const handleSellerRegister = async (e) => {
+        e.preventDefault();
+        const data = {
+            fullName: document.getElementById('regName').value,
+            email: document.getElementById('regEmail').value,
+            phone: document.getElementById('regPhone').value,
+            whatsapp: document.getElementById('regWhatsapp').value,
+            shopName: document.getElementById('regShopName').value,
+            password: document.getElementById('regPassword').value
+        };
+        try {
+            const response = await fetch('/api/seller/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('Registration successful! Please login.');
+                showAuthForm('login');
+            } else {
+                alert(`Registration failed: ${result.message}`);
+            }
+        } catch (error) {
+            alert('An error occurred during registration.');
+        }
+    };
+
+    const handleSellerLogout = async () => {
+        await fetch('/api/seller/logout', { method: 'POST' });
+        currentUser = null;
+        showSellerAuth();
+    };
+
+    // --- SELLER DASHBOARD FUNCTIONS ---
+    const showDashboardSection = (section) => {
+        document.querySelectorAll('.dashboard-btn').forEach(b => b.classList.remove('active'));
+        document.querySelector(`.dashboard-btn[data-section="${section}"]`).classList.add('active');
+        document.querySelectorAll('.dashboard-section').forEach(s => s.classList.add('hidden'));
+        document.getElementById(`${section}ProductSection`).classList.remove('hidden');
+        if (section === 'manage') loadSellerProducts();
+    };
+
+    const handleAddProduct = async (e) => {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('productName').value,
+            category: document.getElementById('productCategory').value,
+            price: document.getElementById('productPrice').value,
+            originalPrice: document.getElementById('productOriginalPrice').value || document.getElementById('productPrice').value,
+            description: document.getElementById('productDescription').value,
+            stockQuantity: document.getElementById('productStock').value,
+        };
+
+        try {
+            const response = await fetch('/api/products/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('Product added successfully!');
+                e.target.reset();
+                showDashboardSection('manage');
+            } else {
+                alert(`Failed to add product: ${result.message}`);
+            }
+        } catch (error) {
+            alert('An error occurred while adding the product.');
+        }
+    };
+
+    const loadSellerProducts = async () => {
+        const tableContainer = document.getElementById('sellerProductsTable');
+        try {
+            const response = await fetch('/api/seller/products');
+            const data = await response.json();
+            if (data.success) {
+                displaySellerProducts(data.products);
+            } else {
+                tableContainer.innerHTML = '<p>Could not load your products.</p>';
+            }
+        } catch (error) {
+            tableContainer.innerHTML = '<p>Error loading your products.</p>';
+        }
+    };
+
+    const displaySellerProducts = (sellerProducts) => {
+        const tableContainer = document.getElementById('sellerProductsTable');
+        tableContainer.innerHTML = '';
+
+        if (sellerProducts.length === 0) {
+            tableContainer.innerHTML = '<p>You have not added any products yet.</p>';
+            return;
+        }
+
+        const header = `<div class="table-header">
                             <span>Product</span>
                             <span>Category</span>
                             <span>Price</span>
                             <span>Stock</span>
                             <span>Status</span>
                             <span>Actions</span>
-                        </div>
-                        <div class="table-row">
-                            <div class="product-cell">
-                                <img src="https://via.placeholder.com/50x50" alt="Product">
-                                <span>Traditional Dress</span>
-                            </div>
-                            <span>Women's Dress</span>
-                            <span>₹2,999</span>
-                            <span>5</span>
-                            <span class="status active">Active</span>
-                            <div class="actions">
-                                <button class="edit-btn"><i class="fas fa-edit"></i></button>
-                                <button class="delete-btn"><i class="fas fa-trash"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                        </div>`;
 
-                <!-- Orders Section -->
-                <div class="dashboard-section hidden" id="ordersSection">
-                    <h3>Recent Orders</h3>
-                    <div class="orders-list">
-                        <div class="order-card">
-                            <div class="order-header">
-                                <span class="order-id">#ORD001</span>
-                                <span class="order-status pending">Pending</span>
-                            </div>
-                            <div class="order-details">
-                                <p><strong>Customer:</strong> Anjali Sharma</p>
-                                <p><strong>Product:</strong> Traditional Tai-Khamyang Dress</p>
-                                <p><strong>Amount:</strong> ₹2,999</p>
-                                <p><strong>Date:</strong> 23 July 2025</p>
-                            </div>
-                            <div class="order-actions">
-                                <button class="order-btn accept">Accept</button>
-                                <button class="order-btn contact">Contact</button>
-                            </div>
-                        </div>
-                    </div>
+        const rows = sellerProducts.map(p => `
+            <div class="table-row">
+                <div class="product-cell">
+                    <img src="https://via.placeholder.com/50x50" alt="${p.name}">
+                    <span>${p.name}</span>
                 </div>
-
-                <!-- Analytics Section -->
-                <div class="dashboard-section hidden" id="analyticsSection">
-                    <h3>Sales Analytics</h3>
-                    <div class="analytics-grid">
-                        <div class="analytics-card">
-                            <i class="fas fa-rupee-sign"></i>
-                            <div>
-                                <h4>₹15,670</h4>
-                                <p>Total Earnings</p>
-                            </div>
-                        </div>
-                        <div class="analytics-card">
-                            <i class="fas fa-shopping-bag"></i>
-                            <div>
-                                <h4>23</h4>
-                                <p>Products Sold</p>
-                            </div>
-                        </div>
-                        <div class="analytics-card">
-                            <i class="fas fa-users"></i>
-                            <div>
-                                <h4>18</h4>
-                                <p>Happy Customers</p>
-                            </div>
-                        </div>
-                        <div class="analytics-card">
-                            <i class="fas fa-star"></i>
-                            <div>
-                                <h4>4.8</h4>
-                                <p>Average Rating</p>
-                            </div>
-                        </div>
-                    </div>
+                <span>${p.category}</span>
+                <span>₹${p.price}</span>
+                <span>${p.stock_quantity}</span>
+                <span class="status active">${p.status}</span>
+                <div class="actions">
+                    <button class="delete-btn" data-product-id="${p.id}"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
-        </div>
-    </section>
+        `).join('');
 
-    <!-- Product Detail Popup -->
-    <div class="product-detail-popup hidden" id="productDetailPopup">
-        <div class="popup-overlay" onclick="closeProductDetail()"></div>
-        <div class="popup-content">
-            <button class="close-btn" onclick="closeProductDetail()">
-                <i class="fas fa-times"></i>
-            </button>
+        tableContainer.innerHTML = header + rows;
+    };
 
-            <div class="product-detail-content">
-                <div class="product-images">
-                    <img id="detailMainImage" src="" alt="Product">
-                </div>
-
-                <div class="product-details">
-                    <h2 id="detailTitle"></h2>
-                    <div class="detail-rating">
-                        <div class="stars" id="detailStars"></div>
-                        <span id="detailReviews"></span>
-                    </div>
-                    <p class="detail-seller" id="detailSeller"></p>
-                    <p class="detail-description" id="detailDescription"></p>
-
-                    <div class="detail-price">
-                        <span class="detail-current-price" id="detailPrice"></span>
-                        <span class="detail-original-price" id="detailOriginalPrice"></span>
-                    </div>
-
-                    <div class="size-selector">
-                        <label>Size:</label>
-                        <div class="size-options">
-                            <button class="size-btn">S</button>
-                            <button class="size-btn">M</button>
-                            <button class="size-btn active">L</button>
-                            <button class="size-btn">XL</button>
-                        </div>
-                    </div>
-
-                    <div class="quantity-selector">
-                        <label>Quantity:</label>
-                        <div class="quantity-controls">
-                            <button onclick="changeQuantity(-1)">-</button>
-                            <span id="quantity">1</span>
-                            <button onclick="changeQuantity(1)">+</button>
-                        </div>
-                    </div>
-
-                    <div class="detail-actions">
-                        <button class="buy-now-btn" onclick="buyNow()">
-                            <i class="fab fa-whatsapp"></i> Buy on WhatsApp
-                        </button>
-                        <button class="share-btn" onclick="shareCurrentProduct()">
-                            <i class="fas fa-share-alt"></i> Share
-                        </button>
-                    </div>
-
-                    <div class="delivery-info">
-                        <div class="delivery-item">
-                            <i class="fas fa-truck"></i>
-                            <span>Free delivery within Assam</span>
-                        </div>
-                        <div class="delivery-item">
-                            <i class="fas fa-undo"></i>
-                            <span>7 days return policy</span>
-                        </div>
-                        <div class="delivery-item">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Authentic traditional wear</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Order Tracking Popup -->
-    <div class="tracking-popup hidden" id="trackingPopup">
-        <div class="popup-overlay" onclick="closeTracking()"></div>
-        <div class="popup-content">
-            <button class="close-btn" onclick="closeTracking()">
-                <i class="fas fa-times"></i>
-            </button>
-            <h3>Track Your Order</h3>
-            <div class="tracking-input">
-                <input type="text" placeholder="Enter Order ID" id="trackingId">
-                <button onclick="trackOrder()">Track</button>
-            </div>
-            <div class="tracking-result" id="trackingResult"></div>
-        </div>
-    </div>
-
-    <!-- Floating Action Buttons -->
-    <div class="floating-actions">
-        <button class="fab-btn" onclick="openTracking()" title="Track Order">
-            <i class="fas fa-shipping-fast"></i>
-        </button>
-        <button class="fab-btn" onclick="scrollToTop()" title="Go to Top">
-            <i class="fas fa-arrow-up"></i>
-        </button>
-    </div>
-
-    <script>
-        // Shop functionality
-        let currentMode = 'buyer';
-        let currentQuantity = 1;
-        let currentProduct = {};
-
-        // Mode switching
-        function switchMode(mode) {
-            currentMode = mode;
-
-            // Update mode buttons
-            document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(mode + 'Mode').classList.add('active');
-
-            // Show/hide sections
-            if (mode === 'buyer') {
-                document.getElementById('buyerSection').classList.remove('hidden');
-                document.getElementById('sellerSection').classList.add('hidden');
+    const deleteProduct = async (productId) => {
+        try {
+            const response = await fetch(`/api/products/${productId}`, { method: 'DELETE' });
+            const result = await response.json();
+            if (result.success) {
+                alert('Product deleted successfully.');
+                loadSellerProducts(); // Refresh the list
             } else {
-                document.getElementById('buyerSection').classList.add('hidden');
-                document.getElementById('sellerSection').classList.remove('hidden');
+                alert(`Failed to delete product: ${result.message}`);
             }
+        } catch (error) {
+            alert('An error occurred while deleting the product.');
         }
+    };
 
-        // Search functionality
-        function searchProducts() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const products = document.querySelectorAll('.product-card');
+    // --- START THE APP ---
+    initializeApp();
+});
+</script>
 
-            products.forEach(product => {
-                const title = product.querySelector('h3').textContent.toLowerCase();
-                if (title.includes(searchTerm)) {
-                    product.style.display = 'block';
-                } else {
-                    product.style.display = 'none';
-                }
-            });
-        }
-
-        // Filter functionality
-        function filterProducts(category) {
-            const products = document.querySelectorAll('.product-card');
-            const filterBtns = document.querySelectorAll('.filter-btn');
-
-            // Update active filter button
-            filterBtns.forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            products.forEach(product => {
-                if (category === 'all' || product.dataset.category === category) {
-                    product.style.display = 'block';
-                } else {
-                    product.style.display = 'none';
-                }
-            });
-        }
-
-        // Product detail popup
-        function openProductDetail(title, description, price, image, seller, rating, reviews) {
-            currentProduct = { title, description, price, image, seller };
-
-            document.getElementById('detailTitle').textContent = title;
-            document.getElementById('detailDescription').textContent = description;
-            document.getElementById('detailPrice').textContent = price;
-            document.getElementById('detailSeller').textContent = seller;
-            document.getElementById('detailReviews').textContent = `(${reviews} reviews)`;
-            document.getElementById('detailMainImage').src = image;
-
-            // Update stars
-            const starsContainer = document.getElementById('detailStars');
-            const fullStars = Math.floor(rating);
-            starsContainer.innerHTML = '';
-            for (let i = 0; i < 5; i++) {
-                const star = document.createElement('i');
-                star.className = i < fullStars ? 'fas fa-star' : 'far fa-star';
-                starsContainer.appendChild(star);
-            }
-
-            document.getElementById('productDetailPopup').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function closeProductDetail() {
-            document.getElementById('productDetailPopup').classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-
-        // Quantity controls
-        function changeQuantity(change) {
-            currentQuantity = Math.max(1, currentQuantity + change);
-            document.getElementById('quantity').textContent = currentQuantity;
-        }
-
-        // Size selection
-        document.addEventListener('click', function(e) {
-            if (e.target.classList.contains('size-btn')) {
-                document.querySelectorAll('.size-btn').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
-            }
-        });
-
-        // Buy now functionality
-        function buyNow() {
-            const message = `Hi! I'm interested in buying ${currentProduct.title} for ${currentProduct.price}. Quantity: ${currentQuantity}`;
-            const whatsappUrl = `https://wa.me/1234567890?text=${encodeURIComponent(message)}`;
-            window.open(whatsappUrl, '_blank');
-        }
-
-        // Share functionality
-        function shareProduct(event, productName) {
-            event.stopPropagation();
-            if (navigator.share) {
-                navigator.share({
-                    title: productName,
-                    text: `Check out this beautiful traditional ${productName} on Tai-Khamyang Shop!`,
-                    url: window.location.href
-                });
-            } else {
-                // Fallback for browsers that don't support Web Share API
-                const text = `Check out this beautiful traditional ${productName} on Tai-Khamyang Shop! ${window.location.href}`;
-                navigator.clipboard.writeText(text).then(() => {
-                    alert('Product link copied to clipboard!');
-                });
-            }
-        }
-
-        function shareCurrentProduct() {
-            shareProduct(event, currentProduct.title);
-        }
-
-        // Wishlist functionality
-        function addToWishlist(event, productId) {
-            event.stopPropagation();
-            const btn = event.target.closest('.action-btn');
-            btn.classList.toggle('active');
-            const icon = btn.querySelector('i');
-
-            if (btn.classList.contains('active')) {
-                icon.className = 'fas fa-heart';
-                showNotification('Added to wishlist!');
-            } else {
-                icon.className = 'far fa-heart';
-                showNotification('Removed from wishlist!');
-            }
-        }
-
-        // Seller authentication
-        function showAuthForm(type) {
-            document.querySelectorAll('.auth-tab').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.auth-form').forEach(form => form.classList.add('hidden'));
-
-            event.target.classList.add('active');
-            document.getElementById(type + 'Form').classList.remove('hidden');
-        }
-
-        function sellerLogin() {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            if (email && password) {
-                document.getElementById('sellerAuth').style.display = 'none';
-                document.getElementById('sellerDashboard').classList.remove('hidden');
-                showNotification('Welcome back to your dashboard!');
-            } else {
-                showNotification('Please fill in all fields', 'error');
-            }
-        }
-
-        function sellerRegister() {
-            const name = document.getElementById('regName').value;
-            const email = document.getElementById('regEmail').value;
-            const phone = document.getElementById('regPhone').value;
-            const shopName = document.getElementById('regShopName').value;
-            const password = document.getElementById('regPassword').value;
-
-            if (name && email && phone && shopName && password) {
-                document.getElementById('sellerAuth').style.display = 'none';
-                document.getElementById('sellerDashboard').classList.remove('hidden');
-                showNotification('Account created successfully! Welcome to Tai-Khamyang Shop!');
-            } else {
-                showNotification('Please fill in all fields', 'error');
-            }
-        }
-
-        function sellerLogout() {
-            document.getElementById('sellerAuth').style.display = 'block';
-            document.getElementById('sellerDashboard').classList.add('hidden');
-            // Clear form fields
-            document.querySelectorAll('input').forEach(input => input.value = '');
-            showNotification('Logged out successfully');
-        }
-
-        // Dashboard navigation
-        function showDashboardSection(section) {
-            document.querySelectorAll('.dashboard-btn').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.dashboard-section').forEach(sec => sec.classList.add('hidden'));
-
-            event.target.classList.add('active');
-            document.getElementById(section + (section === 'add' ? 'Product' : section === 'manage' ? 'Products' : section === 'orders' ? '' : section === 'analytics' ? '' : '') + 'Section').classList.remove('hidden');
-        }
-
-        // Image preview for product upload
-        function previewImages() {
-            const files = document.getElementById('productImages').files;
-            const preview = document.getElementById('imagePreview');
-            preview.innerHTML = '';
-
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-                const reader = new FileReader();
-
-                reader.onload = function(e) {
-                    const imgContainer = document.createElement('div');
-                    imgContainer.className = 'preview-image';
-                    imgContainer.innerHTML = `
-                        <img src="${e.target.result}" alt="Preview">
-                        <button onclick="removeImage(${i})" class="remove-img">×</button>
-                    `;
-                    preview.appendChild(imgContainer);
-                };
-
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function removeImage(index) {
-            // Implementation to remove specific image from file list
-            showNotification('Image removed');
-            // You would need to implement file list manipulation here
-        }
-
-        // Add product functionality
-        function addProduct() {
-            const name = document.getElementById('productName').value;
-            const category = document.getElementById('productCategory').value;
-            const price = document.getElementById('productPrice').value;
-            const description = document.getElementById('productDescription').value;
-            const stock = document.getElementById('productStock').value;
-
-            if (name && price && description && stock) {
-                showNotification('Product added successfully!');
-                // Clear form
-                document.querySelectorAll('#addProductSection input, #addProductSection textarea').forEach(field => field.value = '');
-                document.getElementById('imagePreview').innerHTML = '';
-            } else {
-                showNotification('Please fill in all required fields', 'error');
-            }
-        }
-
-        // Order tracking
-        function openTracking() {
-            document.getElementById('trackingPopup').classList.remove('hidden');
-        }
-
-        function closeTracking() {
-            document.getElementById('trackingPopup').classList.add('hidden');
-        }
-
-        function trackOrder() {
-            const orderId = document.getElementById('trackingId').value;
-            const result = document.getElementById('trackingResult');
-
-            if (orderId) {
-                result.innerHTML = `
-                    <div class="tracking-steps">
-                        <div class="step completed">
-                            <i class="fas fa-check-circle"></i>
-                            <div>
-                                <h4>Order Confirmed</h4>
-                                <p>July 20, 2025 - 10:30 AM</p>
-                            </div>
-                        </div>
-                        <div class="step completed">
-                            <i class="fas fa-box"></i>
-                            <div>
-                                <h4>Order Packed</h4>
-                                <p>July 21, 2025 - 2:15 PM</p>
-                            </div>
-                        </div>
-                        <div class="step active">
-                            <i class="fas fa-truck"></i>
-                            <div>
-                                <h4>Out for Delivery</h4>
-                                <p>July 23, 2025 - 9:00 AM</p>
-                            </div>
-                        </div>
-                        <div class="step">
-                            <i class="fas fa-home"></i>
-                            <div>
-                                <h4>Delivered</h4>
-                                <p>Expected: Today by 6:00 PM</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                showNotification('Please enter an order ID', 'error');
-            }
-        }
-
-        // Utility functions
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
-                <span>${message}</span>
-            `;
-
-            document.body.appendChild(notification);
-
-            setTimeout(() => {
-                notification.classList.add('show');
-            }, 100);
-
-            setTimeout(() => {
-                notification.classList.remove('show');
-                setTimeout(() => {
-                    document.body.removeChild(notification);
-                }, 300);
-            }, 3000);
-        }
-
-        function scrollToTop() {
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        // Mobile menu toggle
-        document.getElementById('hamburger').addEventListener('click', function() {
-            document.getElementById('navMenu').classList.toggle('active');
-            this.classList.toggle('active');
-        });
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set default mode
-            switchMode('buyer');
-
-            // Add scroll effect to floating button
-            window.addEventListener('scroll', function() {
-                const fabBtn = document.querySelector('.floating-actions');
-                if (window.scrollY > 300) {
-                    fabBtn.style.opacity = '1';
-                } else {
-                    fabBtn.style.opacity = '0.7';
-                }
-            });
-        });
-    </script>
 </body>
 </html>

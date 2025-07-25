@@ -1,90 +1,87 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, flash
-import sqlite3
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import json
+import uuid
+from datetime import datetime
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 app = Flask(__name__)
-app.secret_key = 'tai_khamyang_secret_key_2024'  # Change this in production
+
+cred = credentials.Certificate('tai-khamyang-app-firebase-adminsdk-fbsvc-f89b5718fc.json')
+firebase_admin.initialize_app(cred)
+
+db = firestore.client()
+
+app.secret_key = 'tai_khamyang_secret_key_2025'  # Change this in production
 app.config['UPLOAD_FOLDER'] = 'static/audio'
 
 # Ensure upload directory exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 
-# Database initialization
-def init_db():
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
 
 
-    #registration table
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
-               id INTEGER PRIMARY KEY AUTOINCREMENT,
-               name TEXT NOT NULL,
-               phone TEXT UNIQUE NOT NULL,
-               address TEXT NOT NULL,
-               password TEXT NOT NULL,
-               registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-           )''')
 
-    # Words table
-    c.execute('''CREATE TABLE IF NOT EXISTS words (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        tai_khamyang TEXT NOT NULL,
-        english TEXT NOT NULL,
-        assamese TEXT NOT NULL,
-        audio_path TEXT
-    )''')
+# Firebase initialization
+def init_firestore():
+    try:
+        # Check if admin exists, if not create default
+        admin_ref = db.collection('admin').document('default_admin')
+        if not admin_ref.get().exists:
+            hashed_password = generate_password_hash('admin123')
+            admin_ref.set({
+                'username': 'admin',
+                'password': hashed_password
+            })
+            print("Default admin created")
 
-    # Songs table
-    c.execute('''CREATE TABLE IF NOT EXISTS songs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        title TEXT NOT NULL,
-        description TEXT,
-        file_path TEXT
-    )''')
+        # Add sample words if collection is empty
+        words_ref = db.collection('words')
+        words_docs = list(words_ref.limit(1).stream())
+        if len(words_docs) == 0:
+            sample_words = [ ]
+            for word in sample_words:
+                words_ref.add(word)
+            print("Sample words added")
 
-    # Admin table
-    c.execute('''CREATE TABLE IF NOT EXISTS admin (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
-    )''')
+        # Add sample songs if collection is empty
+        songs_ref = db.collection('songs')
+        songs_docs = list(songs_ref.limit(1).stream())
+        if len(songs_docs) == 0:
+            sample_songs = [ ]
+            for song in sample_songs:
+                songs_ref.add(song)
+            print("Sample songs added")
+        # Add sample sellers if collection is empty
+        sellers_ref = db.collection('sellers')
+        sellers_docs = list(sellers_ref.limit(1).stream())
+        if len(sellers_docs) == 0:
+            sample_seller = {
+                'id': str(uuid.uuid4()),
+                'business_name': 'traditional Shop',
+                'email': 'khamyang@gmail.com',
+                'password': generate_password_hash('khamyang123'),
+                'phone': '+919876543210',
+                'whatsapp': '919876543210',
+                'address': 'Demo Address',
+                'business_type': 'retail',
+                'created_at': datetime.now(),
+                'status': 'active'
+            }
+            sellers_ref.document(sample_seller['id']).set(sample_seller)
+            print("Sample seller added")
 
-    # Check if admin exists, if not create default
-    c.execute('SELECT * FROM admin WHERE username = ?', ('admin',))
-    if not c.fetchone():
-        hashed_password = generate_password_hash('admin123')
-        c.execute('INSERT INTO admin (username, password) VALUES (?, ?)', ('admin', hashed_password))
+            # Add sample products if collection is empty
+            products_ref = db.collection('products')
+            products_docs = list(products_ref.limit(1).stream())
+            if len(products_docs) == 0:
+                print("Sample products initialized")
 
-    # Add sample data if tables are empty
-    c.execute('SELECT COUNT(*) FROM words')
-    if c.fetchone()[0] == 0:
-        sample_words = [
-            ('ကမ်းယန်း', 'Khamyang', 'খামইয়াং'),
-            ('မန်း', 'Water', 'পানী'),
-            ('ဖါး', 'Sky', 'আকাশ'),
-            ('ကုမ်း', 'Child', 'শিশু'),
-            ('မိတ်', 'Friend', 'বন্ধু'),
-            ('ပြန်း', 'House', 'ঘৰ'),
-            ('လမ်း', 'Road', 'ৰাস্তা'),
-            ('နမ်း', 'Name', 'নাম')
-        ]
-        c.executemany('INSERT INTO words (tai_khamyang, english, assamese) VALUES (?, ?, ?)', sample_words)
-
-    c.execute('SELECT COUNT(*) FROM songs')
-    if c.fetchone()[0] == 0:
-        sample_songs = [
-            ('Traditional Welcome Song', 'A beautiful welcome song sung during festivals'),
-            ('Harvest Festival Song', 'Song celebrating the harvest season'),
-            ('River Song', 'A melodious song about the flowing river')
-        ]
-        c.executemany('INSERT INTO songs (title, description) VALUES (?, ?)', sample_songs)
-
-    conn.commit()
-    conn.close()
+    except Exception as e:
+        print(f"Error initializing Firestore: {e}")
 
 
 # Routes
@@ -95,11 +92,13 @@ def home():
     else:
         return render_template('indexx.html')  # Show landing page for non-logged-in users
 
+
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' not in session:
         return redirect(url_for('home'))  # redirect to indexx.html
     return render_template('index.html')
+
 
 @app.route('/logout')
 def logout():
@@ -116,29 +115,35 @@ def register():
         address = request.form.get('address')
         password = request.form.get('password')
 
-        # ✅ Validation
+        # Validation
         if not all([name, phone, address, password]):
             flash('Please fill all fields')
             return redirect(url_for('register'))
 
-        password = request.form.get('password')
         hashed_password = generate_password_hash(password)
 
-        # Save name, phone, address, hashed_password into DB
-
         try:
-            conn = sqlite3.connect('database.db')
-            c = conn.cursor()
-            c.execute('INSERT INTO users (name, phone, address, password) VALUES (?, ?, ?, ?)',
-                      (name, phone, address, hashed_password))
-            conn.commit()
+            # Check if phone already exists
+            users_ref = db.collection('users')
+            existing_user = users_ref.where('phone', '==', phone).limit(1).stream()
+            if len(list(existing_user)) > 0:
+                flash('Phone number already registered')
+                return redirect(url_for('register'))
 
-            # ✅ Auto login after registration
+            # Add new user
+            user_ref = users_ref.add({
+                'name': name,
+                'phone': phone,
+                'address': address,
+                'password': hashed_password,
+                'registered_at': firestore.SERVER_TIMESTAMP
+            })
+
+            # Auto login after registration
             session['user_logged_in'] = True
             session['user_name'] = name
-            session['user_id'] = c.lastrowid
+            session['user_id'] = user_ref[1].id
 
-            conn.close()
             return redirect(url_for('dictionary'))
         except Exception as e:
             flash('Registration failed. Please try again.')
@@ -148,35 +153,33 @@ def register():
     return render_template('register.html')
 
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
         phone = request.form.get('phone')
         password = request.form.get('password')
 
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('SELECT id, password FROM users WHERE phone = ?', (phone,))
-        user = c.fetchone()
-        conn.close()
+        try:
+            users_ref = db.collection('users')
+            user_docs = users_ref.where('phone', '==', phone).limit(1).stream()
+            user_doc = None
 
-        if user and check_password_hash(user[1], password):
-            session['user_id'] = user[0]
-            return redirect(url_for('dashboard'))
-        else:
-            flash('Invalid credentials')
+            for doc in user_docs:
+                user_doc = doc
+                break
+
+            if user_doc and check_password_hash(user_doc.to_dict()['password'], password):
+                session['user_id'] = user_doc.id
+                return redirect(url_for('dashboard'))
+            else:
+                flash('Invalid credentials')
+                return redirect(url_for('login'))
+        except Exception as e:
+            flash('Login failed. Please try again.')
+            print(f"Login error: {e}")
             return redirect(url_for('login'))
 
     return render_template('login.html')
-
-
-# @app.route('/')
-# def home():
-#     # Check if user is registered (only if not admin)
-#     if 'admin_logged_in' not in session and not session.get('user_registered'):
-#         return redirect(url_for('register'))
-#     return render_template('index.html')
 
 
 @app.route('/dictionary')
@@ -187,6 +190,7 @@ def dictionary():
 @app.route('/songs')
 def songs():
     return render_template('songs.html')
+
 
 @app.route('/shopnow')
 def shop():
@@ -211,17 +215,22 @@ def admin_login():
         username = request.form['username']
         password = request.form['password']
 
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('SELECT password FROM admin WHERE username = ?', (username,))
-        result = c.fetchone()
-        conn.close()
+        try:
+            admin_ref = db.collection('admin').document('default_admin')
+            admin_doc = admin_ref.get()
 
-        if result and check_password_hash(result[0], password):
-            session['admin_logged_in'] = True
-            return redirect(url_for('admin'))
-        else:
-            flash('Invalid credentials')
+            if admin_doc.exists:
+                admin_data = admin_doc.to_dict()
+                if admin_data['username'] == username and check_password_hash(admin_data['password'], password):
+                    session['admin_logged_in'] = True
+                    return redirect(url_for('admin'))
+                else:
+                    flash('Invalid credentials')
+            else:
+                flash('Admin not found')
+        except Exception as e:
+            flash('Login failed. Please try again.')
+            print(f"Admin login error: {e}")
 
     return render_template('admin_login.html')
 
@@ -232,78 +241,265 @@ def admin_logout():
     return redirect(url_for('home'))
 
 
+# ============= SHOP ROUTES =============
+
+@app.route('/api/seller/register', methods=['POST'])
+def seller_register():
+    try:
+        data = request.get_json()
+
+        # Check if a seller with this email already exists
+        sellers_ref = db.collection('sellers')
+        existing_sellers = list(sellers_ref.where('email', '==', data['email']).stream())
+
+        if existing_sellers:
+            return jsonify({'success': False, 'message': 'Seller with this email already exists'})
+
+        # Create the new seller document using data from the form
+        # This now correctly matches the fields sent from your JavaScript
+        seller_data = {
+            'id': str(uuid.uuid4()),
+            'full_name': data['fullName'],  # From the "Full Name" field
+            'business_name': data['shopName'],  # From the "Shop Name" field
+            'email': data['email'],
+            'password': generate_password_hash(data['password']),  # Securely hash the password
+            'phone': data['phone'],
+            'whatsapp': data['whatsapp'],
+            'created_at': datetime.now(),
+            'status': 'active'
+        }
+
+        # Add the new seller data to the 'sellers' collection in Firestore
+        db.collection('sellers').document(seller_data['id']).set(seller_data)
+
+        return jsonify({'success': True, 'message': 'Seller registered successfully'})
+
+    except Exception as e:
+        # Return an error if something goes wrong
+        print(f"Seller registration error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/seller/login', methods=['POST'])
+def seller_login():
+    try:
+        data = request.get_json()
+
+        # Find the seller in the database by their email address
+        sellers_ref = db.collection('sellers')
+        sellers = list(sellers_ref.where('email', '==', data['email']).stream())
+
+        # If no seller is found with that email, return an error
+        if not sellers:
+            return jsonify({'success': False, 'message': 'Invalid email or password'})
+
+        seller_doc = sellers[0]
+        seller = seller_doc.to_dict()
+        seller['id'] = seller_doc.id  # Get the document ID
+
+        # Check if the provided password matches the stored hashed password
+        if check_password_hash(seller['password'], data['password']):
+            # If login is successful, store seller info in the session
+            session['seller_id'] = seller['id']
+            session['seller_name'] = seller['business_name']
+
+            # Return success and seller details to the frontend
+            return jsonify({'success': True, 'seller': {
+                'id': seller['id'],
+                'business_name': seller['business_name'],
+                'email': seller['email']
+            }})
+        else:
+            # If passwords do not match, return an error
+            return jsonify({'success': False, 'message': 'Invalid email or password'})
+
+    except Exception as e:
+        print(f"Seller login error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/seller/logout', methods=['POST'])
+def seller_logout():
+    session.pop('seller_id', None)
+    session.pop('seller_name', None)
+    return jsonify({'success': True})
+
+
+@app.route('/api/products/add', methods=['POST'])
+def add_product():
+    try:
+        if 'seller_id' not in session:
+            return jsonify({'success': False, 'message': 'Please login first'})
+
+        data = request.get_json()
+
+        product_data = {
+            'id': str(uuid.uuid4()),
+            'seller_id': session['seller_id'],
+            'name': data['name'],
+            'description': data['description'],
+            'category': data['category'],
+            'price': float(data['price']),
+            'original_price': float(data.get('originalPrice', data['price'])),
+            'sizes': data.get('sizes', []),
+            'images': data.get('images', []),
+            'stock_quantity': int(data.get('stockQuantity', 0)),
+            'status': 'active',
+            'created_at': datetime.now(),
+            'updated_at': datetime.now()
+        }
+
+        # Add to Firestore
+        db.collection('products').document(product_data['id']).set(product_data)
+
+        return jsonify({'success': True, 'message': 'Product added successfully'})
+
+    except Exception as e:
+        print(f"Add product error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/products', methods=['GET'])
+def get_products():
+    try:
+        products_ref = db.collection('products')
+        products = list(products_ref.where('status', '==', 'active').stream())
+
+        product_list = []
+        for product_doc in products:
+            product_data = product_doc.to_dict()
+            product_data['id'] = product_doc.id
+
+            # Get seller info
+            seller_doc = db.collection('sellers').document(product_data['seller_id']).get()
+            if seller_doc.exists:
+                seller_data = seller_doc.to_dict()
+                product_data['seller_info'] = {
+                    'business_name': seller_data['business_name'],
+                    'whatsapp': seller_data['whatsapp'],
+                    'phone': seller_data['phone']
+                }
+
+            product_list.append(product_data)
+
+        return jsonify({'success': True, 'products': product_list})
+
+    except Exception as e:
+        print(f"Get products error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/seller/products', methods=['GET'])
+def get_seller_products():
+    try:
+        if 'seller_id' not in session:
+            return jsonify({'success': False, 'message': 'Please login first'})
+
+        products_ref = db.collection('products')
+        products = list(products_ref.where('seller_id', '==', session['seller_id']).stream())
+
+        product_list = []
+        for product_doc in products:
+            product_data = product_doc.to_dict()
+            product_data['id'] = product_doc.id
+            product_list.append(product_data)
+
+        return jsonify({'success': True, 'products': product_list})
+
+    except Exception as e:
+        print(f"Get seller products error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/products/<product_id>', methods=['DELETE'])
+def delete_product(product_id):
+    try:
+        if 'seller_id' not in session:
+            return jsonify({'success': False, 'message': 'Please login first'})
+
+        # Check if product belongs to seller
+        product_doc = db.collection('products').document(product_id).get()
+        if not product_doc.exists:
+            return jsonify({'success': False, 'message': 'Product not found'})
+
+        product_data = product_doc.to_dict()
+        if product_data['seller_id'] != session['seller_id']:
+            return jsonify({'success': False, 'message': 'Unauthorized'})
+
+        # Delete product
+        db.collection('products').document(product_id).delete()
+
+        return jsonify({'success': True, 'message': 'Product deleted successfully'})
+
+    except Exception as e:
+        print(f"Delete product error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
 # API Routes
 @app.route('/api/words')
 def get_words():
     search = request.args.get('search', '')
-    sort_by = request.args.get('sort_by', 'tai_khamyang')  # Default sort by Tai-Khamyang
+    sort_by = request.args.get('sort_by', 'tai_khamyang')
 
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
+    try:
+        words_ref = db.collection('words')
+        words = []
 
-    # Define valid sort columns to prevent SQL injection
-    valid_sort_columns = ['tai_khamyang', 'english', 'assamese']
-    if sort_by not in valid_sort_columns:
-        sort_by = 'tai_khamyang'
+        for doc in words_ref.stream():
+            word_data = doc.to_dict()
+            word_data['id'] = doc.id
 
-    if search:
-        query = f'''SELECT * FROM words WHERE 
-                   tai_khamyang LIKE ? OR 
-                   english LIKE ? OR 
-                   assamese LIKE ?
-                   ORDER BY {sort_by} COLLATE NOCASE'''
-        c.execute(query, (f'%{search}%', f'%{search}%', f'%{search}%'))
-    else:
-        query = f'SELECT * FROM words ORDER BY {sort_by} COLLATE NOCASE'
-        c.execute(query)
+            # Client-side search filtering
+            if search:
+                search_lower = search.lower()
+                if (search_lower in word_data.get('tai_khamyang', '').lower() or
+                        search_lower in word_data.get('english', '').lower() or
+                        search_lower in word_data.get('assamese', '').lower()):
+                    words.append(word_data)
+            else:
+                words.append(word_data)
 
-    words = []
-    for row in c.fetchall():
-        words.append({
-            'id': row[0],
-            'tai_khamyang': row[1],
-            'english': row[2],
-            'assamese': row[3],
-            'audio_path': row[4]
-        })
+        # Client-side sorting
+        if sort_by in ['tai_khamyang', 'english', 'assamese']:
+            words.sort(key=lambda x: x.get(sort_by, '').lower())
 
-    conn.close()
-    return jsonify(words)
+        return jsonify(words)
+    except Exception as e:
+        print(f"Error getting words: {e}")
+        return jsonify([])
+
 
 @app.route('/api/songs')
 def get_songs():
     search = request.args.get('search', '')
-    sort_by = request.args.get('sort_by', 'title')  # Default sort by title
+    sort_by = request.args.get('sort_by', 'title')
 
-    conn = sqlite3.connect('database.db')
-    c = conn.cursor()
+    try:
+        songs_ref = db.collection('songs')
+        songs = []
 
-    # Define valid sort columns to prevent SQL injection
-    valid_sort_columns = ['title', 'description']
-    if sort_by not in valid_sort_columns:
-        sort_by = 'title'
+        for doc in songs_ref.stream():
+            song_data = doc.to_dict()
+            song_data['id'] = doc.id
 
-    if search:
-        query = f'''SELECT * FROM songs WHERE 
-                   title LIKE ? OR 
-                   description LIKE ?
-                   ORDER BY {sort_by} COLLATE NOCASE'''
-        c.execute(query, (f'%{search}%', f'%{search}%'))
-    else:
-        query = f'SELECT * FROM songs ORDER BY {sort_by} COLLATE NOCASE'
-        c.execute(query)
+            # Client-side search filtering
+            if search:
+                search_lower = search.lower()
+                if (search_lower in song_data.get('title', '').lower() or
+                        search_lower in song_data.get('description', '').lower()):
+                    songs.append(song_data)
+            else:
+                songs.append(song_data)
 
-    songs = []
-    for row in c.fetchall():
-        songs.append({
-            'id': row[0],
-            'title': row[1],
-            'description': row[2],
-            'file_path': row[3]
-        })
+        # Client-side sorting
+        if sort_by in ['title', 'description']:
+            songs.sort(key=lambda x: x.get(sort_by, '').lower())
 
-    conn.close()
-    return jsonify(songs)
+        return jsonify(songs)
+    except Exception as e:
+        print(f"Error getting songs: {e}")
+        return jsonify([])
 
 
 @app.route('/api/words', methods=['POST'])
@@ -331,41 +527,38 @@ def add_word():
                 audio_path = filename
                 audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('INSERT INTO words (tai_khamyang, english, assamese, audio_path) VALUES (?, ?, ?, ?)',
-                  (tai_khamyang, english, assamese, audio_path))
-        conn.commit()
-        word_id = c.lastrowid
-        conn.close()
+        word_data = {
+            'tai_khamyang': tai_khamyang,
+            'english': english,
+            'assamese': assamese
+        }
 
-        return jsonify({'success': True, 'id': word_id})
+        if audio_path:
+            word_data['audio_path'] = audio_path
+
+        words_ref = db.collection('words')
+        doc_ref = words_ref.add(word_data)
+
+        return jsonify({'success': True, 'id': doc_ref[1].id})
 
     except Exception as e:
         print(f"Error adding word: {e}")
         return jsonify({'error': str(e)}), 500
 
 
-#words
-@app.route('/api/words/<int:word_id>', methods=['PUT'])
+@app.route('/api/words/<word_id>', methods=['PUT'])
 def update_word(word_id):
     if 'admin_logged_in' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    conn = None
     try:
-        # Initialize variables
-        tai_khamyang = None
-        english = None
-        assamese = None
-        audio_path = None
-
         # Handle both JSON and form data
         if request.is_json:
             data = request.get_json()
             tai_khamyang = data.get('tai_khamyang')
             english = data.get('english')
             assamese = data.get('assamese')
+            audio_path = None
         else:
             tai_khamyang = request.form.get('tai_khamyang')
             english = request.form.get('english')
@@ -373,6 +566,7 @@ def update_word(word_id):
 
             # Handle file upload if present
             audio_file = request.files.get('audio')
+            audio_path = None
             if audio_file:
                 filename = secure_filename(audio_file.filename)
                 audio_path = filename
@@ -382,41 +576,37 @@ def update_word(word_id):
         if not all([tai_khamyang, english, assamese]):
             return jsonify({'error': 'Missing required fields'}), 400
 
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
+        word_data = {
+            'tai_khamyang': tai_khamyang,
+            'english': english,
+            'assamese': assamese
+        }
 
-        # Update with or without audio path
         if audio_path:
-            c.execute('UPDATE words SET tai_khamyang=?, english=?, assamese=?, audio_path=? WHERE id=?',
-                      (tai_khamyang, english, assamese, audio_path, word_id))
-        else:
-            c.execute('UPDATE words SET tai_khamyang=?, english=?, assamese=? WHERE id=?',
-                      (tai_khamyang, english, assamese, word_id))
+            word_data['audio_path'] = audio_path
 
-        conn.commit()
+        word_ref = db.collection('words').document(word_id)
+        word_ref.update(word_data)
+
         return jsonify({'message': 'Word updated successfully'})
 
     except Exception as e:
         print(f'Error in update_word: {e}')
         return jsonify({'error': str(e)}), 500
-    finally:
-        if conn:
-            conn.close()
 
-@app.route('/api/words/<int:word_id>', methods=['DELETE'])
+
+@app.route('/api/words/<word_id>', methods=['DELETE'])
 def delete_word(word_id):
     if 'admin_logged_in' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('DELETE FROM words WHERE id=?', (word_id,))
-        conn.commit()
-        conn.close()
+        word_ref = db.collection('words').document(word_id)
+        word_ref.delete()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/songs', methods=['POST'])
 def add_song():
@@ -442,45 +632,43 @@ def add_song():
                 file_path = filename
                 audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('INSERT INTO songs (title, description, file_path) VALUES (?, ?, ?)',
-                  (title, description, file_path))
-        conn.commit()
-        song_id = c.lastrowid
-        conn.close()
+        song_data = {
+            'title': title,
+            'description': description
+        }
 
-        return jsonify({'success': True, 'id': song_id})
+        if file_path:
+            song_data['file_path'] = file_path
+
+        songs_ref = db.collection('songs')
+        doc_ref = songs_ref.add(song_data)
+
+        return jsonify({'success': True, 'id': doc_ref[1].id})
 
     except Exception as e:
         print(f"Error adding song: {e}")
         return jsonify({'error': str(e)}), 500
 
 
-#song
-@app.route('/api/songs/<int:song_id>', methods=['PUT'])
+@app.route('/api/songs/<song_id>', methods=['PUT'])
 def update_song(song_id):
     if 'admin_logged_in' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
-    conn = None
     try:
-        # Initialize variables
-        title = None
-        description = None
-        file_path = None
-
         # Handle both JSON and form data
         if request.is_json:
             data = request.get_json()
             title = data.get('title')
             description = data.get('description')
+            file_path = None
         else:
             title = request.form.get('title')
             description = request.form.get('description')
 
             # Handle file upload if present
             audio_file = request.files.get('audio')
+            file_path = None
             if audio_file:
                 filename = secure_filename(audio_file.filename)
                 file_path = filename
@@ -490,43 +678,38 @@ def update_song(song_id):
         if not title:
             return jsonify({'error': 'Title is required'}), 400
 
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
+        song_data = {
+            'title': title,
+            'description': description
+        }
 
-        # Update with or without file path
         if file_path:
-            c.execute('UPDATE songs SET title=?, description=?, file_path=? WHERE id=?',
-                      (title, description, file_path, song_id))
-        else:
-            c.execute('UPDATE songs SET title=?, description=? WHERE id=?',
-                      (title, description, song_id))
+            song_data['file_path'] = file_path
 
-        conn.commit()
+        song_ref = db.collection('songs').document(song_id)
+        song_ref.update(song_data)
+
         return jsonify({'message': 'Song updated successfully'})
 
     except Exception as e:
         print(f'Error in update_song: {e}')
         return jsonify({'error': str(e)}), 500
-    finally:
-        if conn:
-            conn.close()
 
 
-@app.route('/api/songs/<int:song_id>', methods=['DELETE'])
+@app.route('/api/songs/<song_id>', methods=['DELETE'])
 def delete_song(song_id):
     if 'admin_logged_in' not in session:
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
-        conn = sqlite3.connect('database.db')
-        c = conn.cursor()
-        c.execute('DELETE FROM songs WHERE id=?', (song_id,))
-        conn.commit()
-        conn.close()
+        song_ref = db.collection('songs').document(song_id)
+        song_ref.delete()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
+
 if __name__ == '__main__':
-    init_db()
+    init_firestore()
     app.run(debug=True, host='0.0.0.0', port=5000)

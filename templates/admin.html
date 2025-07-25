@@ -300,59 +300,59 @@
         }
 
         // Display Words
-        function displayWords(words) {
-            const tbody = document.getElementById('wordsTableBody');
-            tbody.innerHTML = words.map(word => `
-                <tr>
-                    <td class="tai-word">${word.tai_khamyang}</td>
-                    <td>${word.english}</td>
-                    <td>${word.assamese}</td>
-                    <td>
-                        ${word.audio_path ?
-                            `<button class="btn-icon" onclick="playAudio('${word.audio_path}')" title="Play audio">
-                                <i class="fas fa-play"></i>
-                            </button>` :
-                            '<span class="no-audio">No audio</span>'
-                        }
-                    </td>
-                    <td class="actions">
-                        <button class="btn-icon edit" onclick="editWord(${word.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon delete" onclick="deleteWord(${word.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+function displayWords(words) {
+    const tbody = document.getElementById('wordsTableBody');
+    tbody.innerHTML = words.map(word => `
+        <tr>
+            <td class="tai-word">${word.tai_khamyang}</td>
+            <td>${word.english}</td>
+            <td>${word.assamese}</td>
+            <td>
+                ${word.audio_path ?
+                    `<button class="btn-icon" onclick="playAudio('${word.audio_path}')" title="Play audio">
+                        <i class="fas fa-play"></i>
+                    </button>` :
+                    '<span class="no-audio">No audio</span>'
+                }
+            </td>
+            <td class="actions">
+                <button class="btn-icon edit" onclick="editWord('${word.id}')" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon delete" onclick="deleteWord('${word.id}')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
 
-        // Display Songs
-        function displaySongs(songs) {
-            const tbody = document.getElementById('songsTableBody');
-            tbody.innerHTML = songs.map(song => `
-                <tr>
-                    <td class="song-title">${song.title}</td>
-                    <td class="song-desc">${song.description || 'No description'}</td>
-                    <td>
-                        ${song.file_path ?
-                            `<button class="btn-icon" onclick="playSong('${song.file_path}')" title="Play song">
-                                <i class="fas fa-play"></i>
-                            </button>` :
-                            '<span class="no-audio">No file</span>'
-                        }
-                    </td>
-                    <td class="actions">
-                        <button class="btn-icon edit" onclick="editSong(${song.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon delete" onclick="deleteSong(${song.id})" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
+// Display Songs
+function displaySongs(songs) {
+    const tbody = document.getElementById('songsTableBody');
+    tbody.innerHTML = songs.map(song => `
+        <tr>
+            <td class="song-title">${song.title}</td>
+            <td class="song-desc">${song.description || 'No description'}</td>
+            <td>
+                ${song.file_path ?
+                    `<button class="btn-icon" onclick="playSong('${song.file_path}')" title="Play song">
+                        <i class="fas fa-play"></i>
+                    </button>` :
+                    '<span class="no-audio">No file</span>'
+                }
+            </td>
+            <td class="actions">
+                <button class="btn-icon edit" onclick="editSong('${song.id}')" title="Edit">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn-icon delete" onclick="deleteSong('${song.id}')" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </td>
+        </tr>
+    `).join('');
+}
 
         // Setup Forms
         function setupForms() {
