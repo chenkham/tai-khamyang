@@ -6,7 +6,7 @@ import json
 import uuid
 from datetime import datetime
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials, firestore, storage
 from dotenv import load_dotenv
 
 # Load environment variables first
@@ -38,8 +38,9 @@ try:
         raise FileNotFoundError(f"Firebase admin SDK file not found at {firebase_admin_sdk_path}")
 
     cred = credentials.Certificate(firebase_admin_sdk_path)
-    firebase_admin.initialize_app(cred)
+    firebase_admin.initialize_app(cred, {'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET')})
     db = firestore.client()
+    bucket = storage.bucket()
     print("Firebase initialized successfully")
 except Exception as e:
     print(f"ERROR: Firebase initialization failed - {e}")
@@ -393,13 +394,27 @@ def get_products():
             product_data['id'] = product_doc.id
 
             # Get seller info
-            seller_doc = db.collection('sellers').document(product_data['seller_id']).get()
-            if seller_doc.exists:
-                seller_data = seller_doc.to_dict()
+            try:
+                seller_doc = db.collection('sellers').document(product_data['seller_id']).get()
+                if seller_doc.exists:
+                    seller_data = seller_doc.to_dict()
+                    product_data['seller_info'] = {
+                        'business_name': seller_data.get('business_name', 'Unknown Seller'),
+                        'whatsapp': seller_data.get('whatsapp', ''),
+                        'phone': seller_data.get('phone', '')
+                    }
+                else:
+                    product_data['seller_info'] = {
+                        'business_name': 'Unknown Seller',
+                        'whatsapp': '',
+                        'phone': ''
+                    }
+            except Exception as seller_error:
+                print(f"Error getting seller info: {seller_error}")
                 product_data['seller_info'] = {
-                    'business_name': seller_data['business_name'],
-                    'whatsapp': seller_data['whatsapp'],
-                    'phone': seller_data['phone']
+                    'business_name': 'Unknown Seller',
+                    'whatsapp': '',
+                    'phone': ''
                 }
 
             product_list.append(product_data)
@@ -436,27 +451,78 @@ def get_seller_products():
 @app.route('/api/products/<product_id>', methods=['DELETE'])
 def delete_product(product_id):
     try:
+        # Check if a seller is logged in
         if 'seller_id' not in session:
-            return jsonify({'success': False, 'message': 'Please login first'})
+            return jsonify({'success': False, 'message': 'Authentication required. Please login first.'}), 401
 
-        # Check if product belongs to seller
-        product_doc = db.collection('products').document(product_id).get()
+        # Get the product from the database
+        product_ref = db.collection('products').document(product_id)
+        product_doc = product_ref.get()
+
         if not product_doc.exists:
-            return jsonify({'success': False, 'message': 'Product not found'})
+            return jsonify({'success': False, 'message': 'Product not found.'}), 404
 
         product_data = product_doc.to_dict()
-        if product_data['seller_id'] != session['seller_id']:
-            return jsonify({'success': False, 'message': 'Unauthorized'})
 
-        # Delete product
-        db.collection('products').document(product_id).delete()
+        # IMPORTANT: Check if the product's seller_id matches the logged-in seller's ID
+        if product_data['seller_id'] != session['seller_id']:
+            return jsonify({'success': False, 'message': 'Unauthorized. You can only delete your own products.'}), 403
+
+        # If all checks pass, delete the product
+        product_ref.delete()
 
         return jsonify({'success': True, 'message': 'Product deleted successfully'})
 
     except Exception as e:
         print(f"Delete product error: {e}")
-        return jsonify({'success': False, 'message': str(e)})
+        return jsonify({'success': False, 'message': 'A server error occurred.'}), 500
 
+
+# ============= UTILITY ROUTES =============
+@app.route('/api/upload-image', methods=['POST'])
+def upload_image():
+    try:
+        if 'image' not in request.files:
+            return jsonify({'success': False, 'message': 'No image file provided'})
+
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({'success': False, 'message': 'No file selected'})
+
+        # Validate file type
+        allowed_extensions = {'jpg', 'jpeg', 'png', 'webp'}
+        if not ('.' in file.filename and
+                file.filename.rsplit('.', 1)[1].lower() in allowed_extensions):
+            return jsonify({'success': False, 'message': 'Invalid file type'})
+
+        # Validate file size (2MB max)
+        file.seek(0, 2)  # Seek to end of file
+        file_size = file.tell()
+        file.seek(0)  # Reset to beginning
+
+        if file_size > 2 * 1024 * 1024:  # 2MB
+            return jsonify({'success': False, 'message': 'File too large. Maximum size is 2MB'})
+
+        # Generate unique filename
+        filename = secure_filename(file.filename)
+        unique_filename = f"products/{uuid.uuid4()}_{filename}"
+
+        # Upload to Firebase Storage
+        blob = bucket.blob(unique_filename)
+        blob.upload_from_file(
+            file,
+            content_type=file.content_type
+        )
+        blob.make_public()
+
+        return jsonify({
+            'success': True,
+            'imageUrl': blob.public_url
+        })
+
+    except Exception as e:
+        print(f"Image upload error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
 
 # API Routes
 @app.route('/api/words')
@@ -636,36 +702,47 @@ def add_song():
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
-        # Get data from form or JSON
-        if request.is_json:
-            data = request.get_json()
-            title = data.get('title')
-            description = data.get('description')
-            file_path = None
-        else:
-            title = request.form.get('title')
-            description = request.form.get('description')
+        title = request.form.get('title')
+        description = request.form.get('description')
+        file_url = None
 
-            # Handle audio file upload
-            audio_file = request.files.get('audio')
-            file_path = None
-            if audio_file:
-                filename = secure_filename(audio_file.filename)
-                file_path = filename
-                audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # Handle audio file upload
+        audio_file = request.files.get('audio')
+        if audio_file:
+            # Validate file type
+            if not audio_file.filename.lower().endswith(('.mp3', '.wav', '.ogg')):
+                return jsonify({'error': 'Invalid file type'}), 400
+
+            # Generate a unique filename
+            filename = secure_filename(audio_file.filename)
+            unique_filename = f"songs/{uuid.uuid4()}_{filename}"
+
+            # Upload to Firebase Storage
+            blob = bucket.blob(unique_filename)
+            blob.upload_from_file(
+                audio_file,
+                content_type=audio_file.content_type
+            )
+            blob.make_public()
+            file_url = blob.public_url
 
         song_data = {
             'title': title,
-            'description': description
+            'description': description,
+            'created_at': firestore.SERVER_TIMESTAMP
         }
 
-        if file_path:
-            song_data['file_path'] = file_path
+        if file_url:
+            song_data['file_url'] = file_url
 
         songs_ref = db.collection('songs')
         doc_ref = songs_ref.add(song_data)
 
-        return jsonify({'success': True, 'id': doc_ref[1].id})
+        return jsonify({
+            'success': True,
+            'id': doc_ref[1].id,
+            'file_url': file_url
+        })
 
     except Exception as e:
         print(f"Error adding song: {e}")
@@ -678,40 +755,58 @@ def update_song(song_id):
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
-        # Handle both JSON and form data
-        if request.is_json:
-            data = request.get_json()
-            title = data.get('title')
-            description = data.get('description')
-            file_path = None
-        else:
-            title = request.form.get('title')
-            description = request.form.get('description')
+        title = request.form.get('title')
+        description = request.form.get('description')
+        audio_file = request.files.get('audio')
 
-            # Handle file upload if present
-            audio_file = request.files.get('audio')
-            file_path = None
-            if audio_file:
-                filename = secure_filename(audio_file.filename)
-                file_path = filename
-                audio_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        # Get existing song data
+        song_ref = db.collection('songs').document(song_id)
+        song = song_ref.get()
+        if not song.exists:
+            return jsonify({'error': 'Song not found'}), 404
 
-        # Validate required fields
-        if not title:
-            return jsonify({'error': 'Title is required'}), 400
+        song_data = song.to_dict()
+        file_url = song_data.get('file_url')
 
-        song_data = {
+        # Handle file upload if present
+        if audio_file:
+            # Delete old file if exists
+            if file_url:
+                try:
+                    old_blob_name = file_url.split('/')[-1]
+                    old_blob = bucket.blob(old_blob_name)
+                    old_blob.delete()
+                except Exception as e:
+                    print(f"Warning: Could not delete old audio file - {e}")
+
+            # Upload new file
+            filename = secure_filename(audio_file.filename)
+            unique_filename = f"songs/{uuid.uuid4()}_{filename}"
+
+            blob = bucket.blob(unique_filename)
+            blob.upload_from_file(
+                audio_file,
+                content_type=audio_file.content_type
+            )
+            blob.make_public()
+            file_url = blob.public_url
+
+        # Prepare update data
+        update_data = {
             'title': title,
-            'description': description
+            'description': description,
+            'updated_at': firestore.SERVER_TIMESTAMP
         }
 
-        if file_path:
-            song_data['file_path'] = file_path
+        if file_url:
+            update_data['file_url'] = file_url
 
-        song_ref = db.collection('songs').document(song_id)
-        song_ref.update(song_data)
+        song_ref.update(update_data)
 
-        return jsonify({'message': 'Song updated successfully'})
+        return jsonify({
+            'success': True,
+            'file_url': file_url
+        })
 
     except Exception as e:
         print(f'Error in update_song: {e}')
@@ -724,11 +819,97 @@ def delete_song(song_id):
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
+        # First get the song to check for file_path
         song_ref = db.collection('songs').document(song_id)
+        song = song_ref.get()
+
+        if not song.exists:
+            return jsonify({'error': 'Song not found'}), 404
+
+        song_data = song.to_dict()
+
+        # Delete the audio file from storage if it exists
+        if 'file_path' in song_data:
+            try:
+                # Extract the path from the URL (this might need adjustment based on your URL format)
+                file_url = song_data['file_path']
+                file_path = file_url.split('/')[-1]
+                blob = bucket.blob(f"songs/{file_path}")
+                blob.delete()
+            except Exception as e:
+                print(f"Warning: Could not delete audio file - {e}")
+
+        # Delete the song document
         song_ref.delete()
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# ============= PRODUCT ROUTES =============
+
+@app.route('/api/products/<product_id>', methods=['GET'])
+def get_product_details(product_id):
+    try:
+        product_doc = db.collection('products').document(product_id).get()
+        if not product_doc.exists:
+            return jsonify({'success': False, 'message': 'Product not found'})
+
+        product_data = product_doc.to_dict()
+        product_data['id'] = product_doc.id
+
+        # Get seller info
+        seller_doc = db.collection('sellers').document(product_data['seller_id']).get()
+        if seller_doc.exists:
+            seller_data = seller_doc.to_dict()
+            product_data['seller_info'] = {
+                'business_name': seller_data['business_name'],
+                'whatsapp': seller_data['whatsapp'],
+                'phone': seller_data['phone']
+            }
+
+        return jsonify({'success': True, 'product': product_data})
+
+    except Exception as e:
+        print(f"Get product details error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
+
+
+@app.route('/api/products/<product_id>', methods=['PUT'])
+def update_product(product_id):
+    try:
+        if 'seller_id' not in session:
+            return jsonify({'success': False, 'message': 'Please login first'})
+
+        # Check if product belongs to seller
+        product_doc = db.collection('products').document(product_id).get()
+        if not product_doc.exists:
+            return jsonify({'success': False, 'message': 'Product not found'})
+
+        product_data = product_doc.to_dict()
+        if product_data['seller_id'] != session['seller_id']:
+            return jsonify({'success': False, 'message': 'Unauthorized'})
+
+        data = request.get_json()
+
+        # Update product data
+        update_data = {
+            'name': data['name'],
+            'description': data['description'],
+            'category': data['category'],
+            'price': float(data['price']),
+            'original_price': float(data.get('originalPrice', data['price'])),
+            'stock_quantity': int(data.get('stockQuantity', 0)),
+            'updated_at': datetime.now()
+        }
+
+        # Update in Firestore
+        db.collection('products').document(product_id).update(update_data)
+
+        return jsonify({'success': True, 'message': 'Product updated successfully'})
+
+    except Exception as e:
+        print(f"Update product error: {e}")
+        return jsonify({'success': False, 'message': str(e)})
 
 
 
