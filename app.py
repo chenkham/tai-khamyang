@@ -4,6 +4,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 import json
 import uuid
+from flask_cors import CORS
 from datetime import datetime
 import firebase_admin
 from firebase_admin import credentials, firestore, storage
@@ -18,6 +19,7 @@ except Exception as e:
 
 # Initialize Flask app with configuration from environment
 app = Flask(__name__)
+CORS(app)
 
 # Configure secret key - use environment variable or fallback for development
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'development-key-only-change-in-production')
@@ -571,6 +573,15 @@ def get_songs():
             song_data = doc.to_dict()
             song_data['id'] = doc.id
 
+            # Ensure we have a working URL
+            if 'signed_url' in song_data and song_data['signed_url']:
+                # Prefer signed URL as it's more reliable
+                song_data['file_url'] = song_data['signed_url']
+
+            # Add debug info
+            song_data['has_audio'] = bool(song_data.get('file_url'))
+            song_data['content_type'] = song_data.get('content_type', 'audio/mpeg')
+
             # Client-side search filtering
             if search:
                 search_lower = search.lower()
@@ -589,6 +600,46 @@ def get_songs():
         print(f"Error getting songs: {e}")
         return jsonify([])
 
+
+@app.route('/api/songs/<song_id>/stream')
+def stream_audio(song_id):
+    try:
+        song_ref = db.collection('songs').document(song_id)
+        song = song_ref.get()
+
+        if not song.exists:
+            return "Song not found", 404
+
+        song_data = song.to_dict()
+        file_url = song_data.get('signed_url') or song_data.get('file_url')
+
+        if not file_url:
+            return "No audio file available", 404
+
+        # Proxy the audio file
+        import requests
+        response = requests.get(file_url, stream=True)
+
+        def generate():
+            for chunk in response.iter_content(chunk_size=1024):
+                if chunk:
+                    yield chunk
+
+        content_type = song_data.get('content_type', 'audio/mpeg')
+
+        return app.response_class(
+            generate(),
+            mimetype=content_type,
+            headers={
+                'Accept-Ranges': 'bytes',
+                'Cache-Control': 'public, max-age=3600',
+                'Access-Control-Allow-Origin': '*'
+            }
+        )
+
+    except Exception as e:
+        print(f"Stream audio error: {e}")
+        return f"Streaming error: {str(e)}", 500
 
 @app.route('/api/words', methods=['POST'])
 def add_word():
@@ -698,56 +749,176 @@ def delete_word(word_id):
 
 @app.route('/api/songs', methods=['POST'])
 def add_song():
-    if 'admin_logged_in' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
+    if 'admin_logged_in' not in session or not session['admin_logged_in']:
+        print("[ERROR] Unauthorized access attempt")
+        return jsonify({'error': 'Unauthorized - Please login as admin'}), 401
 
     try:
+        print("[DEBUG] Request headers:", request.headers)
+        print("[DEBUG] Request content type:", request.content_type)
+
+        if 'multipart/form-data' not in request.content_type:
+            return jsonify({'error': 'Content-Type must be multipart/form-data'}), 400
+
         title = request.form.get('title')
-        description = request.form.get('description')
-        file_url = None
-
-        # Handle audio file upload
+        description = request.form.get('description', '')
         audio_file = request.files.get('audio')
-        if audio_file:
-            # Validate file type
-            if not audio_file.filename.lower().endswith(('.mp3', '.wav', '.ogg')):
-                return jsonify({'error': 'Invalid file type'}), 400
 
-            # Generate a unique filename
-            filename = secure_filename(audio_file.filename)
-            unique_filename = f"songs/{uuid.uuid4()}_{filename}"
+        print("[DEBUG] Received title:", title)
+        print("[DEBUG] Received description:", description)
+        print("[DEBUG] Audio file received:", bool(audio_file))
 
-            # Upload to Firebase Storage
+        if not title:
+            return jsonify({'error': 'Song title is required'}), 400
+
+        if not audio_file or audio_file.filename == '':
+            return jsonify({'error': 'Audio file is required'}), 400
+
+        # Enhanced file validation
+        allowed_extensions = {'mp3', 'wav', 'ogg', 'm4a', 'aac'}
+        file_ext = audio_file.filename.rsplit('.', 1)[1].lower() if '.' in audio_file.filename else ''
+
+        if file_ext not in allowed_extensions:
+            return jsonify({
+                'error': f'Invalid file type. Allowed: {", ".join(allowed_extensions)}'
+            }), 400
+
+        # Generate unique filename
+        filename = secure_filename(audio_file.filename)
+        unique_filename = f"songs/{uuid.uuid4()}_{filename}"
+        print("[DEBUG] Generated storage path:", unique_filename)
+
+        # Upload to Firebase Storage with proper settings
+        try:
             blob = bucket.blob(unique_filename)
+
+            # Set proper content type based on file extension
+            content_type_mapping = {
+                'mp3': 'audio/mpeg',
+                'wav': 'audio/wav',
+                'ogg': 'audio/ogg',
+                'm4a': 'audio/mp4',
+                'aac': 'audio/aac'
+            }
+            content_type = content_type_mapping.get(file_ext, 'audio/mpeg')
+
+            # Upload with proper metadata
             blob.upload_from_file(
                 audio_file,
-                content_type=audio_file.content_type
+                content_type=content_type
             )
+
+            # Make public and set proper cache control
             blob.make_public()
+
+            # Set CORS-friendly metadata
+            blob.metadata = {
+                'firebaseStorageDownloadTokens': str(uuid.uuid4())
+            }
+            blob.patch()
+
+            # Generate proper download URL
             file_url = blob.public_url
 
+            # Alternative: Generate signed URL for better compatibility
+            from datetime import timedelta
+            signed_url = blob.generate_signed_url(
+                expiration=datetime.now() + timedelta(days=365),
+                method='GET'
+            )
+
+            print("[SUCCESS] File uploaded to:", file_url)
+            print("[SUCCESS] Signed URL:", signed_url)
+
+        except Exception as upload_error:
+            print("[ERROR] Firebase upload failed:", str(upload_error))
+            return jsonify({
+                'error': f'File upload failed: {str(upload_error)}'
+            }), 500
+
+        # Save to Firestore with both URLs
         song_data = {
             'title': title,
             'description': description,
-            'created_at': firestore.SERVER_TIMESTAMP
+            'file_url': file_url,
+            'signed_url': signed_url,  # Backup URL
+            'content_type': content_type,
+            'file_extension': file_ext,
+            'created_at': firestore.SERVER_TIMESTAMP,
+            'file_path': unique_filename
         }
 
-        if file_url:
-            song_data['file_url'] = file_url
+        try:
+            doc_ref = db.collection('songs').document()
+            doc_ref.set(song_data)
+            print("[SUCCESS] Song saved with ID:", doc_ref.id)
 
-        songs_ref = db.collection('songs')
-        doc_ref = songs_ref.add(song_data)
+            return jsonify({
+                'success': True,
+                'id': doc_ref.id,
+                'file_url': file_url,
+                'signed_url': signed_url
+            })
+
+        except Exception as firestore_error:
+            print("[ERROR] Firestore save failed:", str(firestore_error))
+            try:
+                blob.delete()
+                print("[CLEANUP] Deleted orphaned audio file")
+            except Exception as delete_error:
+                print("[ERROR] Failed to cleanup orphaned file:", str(delete_error))
+
+            return jsonify({
+                'error': f'Database save failed: {str(firestore_error)}'
+            }), 500
+
+    except Exception as e:
+        print("[CRITICAL] Unexpected error:", str(e))
+        return jsonify({
+            'error': f'Unexpected server error: {str(e)}'
+        }), 500
+
+
+@app.route('/api/songs/<song_id>/test-audio')
+def test_audio_url(song_id):
+    try:
+        song_ref = db.collection('songs').document(song_id)
+        song = song_ref.get()
+
+        if not song.exists:
+            return jsonify({'error': 'Song not found'}), 404
+
+        song_data = song.to_dict()
+        file_url = song_data.get('file_url')
+        signed_url = song_data.get('signed_url')
+
+        if not file_url:
+            return jsonify({'error': 'No audio URL found'}), 404
+
+        # Try to access the URL
+        import requests
+        try:
+            response = requests.head(file_url, timeout=10)
+            url_accessible = response.status_code == 200
+            content_type = response.headers.get('content-type', 'unknown')
+            content_length = response.headers.get('content-length', 'unknown')
+        except Exception as e:
+            url_accessible = False
+            content_type = 'error'
+            content_length = str(e)
 
         return jsonify({
-            'success': True,
-            'id': doc_ref[1].id,
-            'file_url': file_url
+            'song_id': song_id,
+            'file_url': file_url,
+            'signed_url': signed_url,
+            'url_accessible': url_accessible,
+            'content_type': content_type,
+            'content_length': content_length,
+            'test_timestamp': datetime.now().isoformat()
         })
 
     except Exception as e:
-        print(f"Error adding song: {e}")
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/songs/<song_id>', methods=['PUT'])
 def update_song(song_id):
@@ -819,7 +990,6 @@ def delete_song(song_id):
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
-        # First get the song to check for file_path
         song_ref = db.collection('songs').document(song_id)
         song = song_ref.get()
 
@@ -829,17 +999,18 @@ def delete_song(song_id):
         song_data = song.to_dict()
 
         # Delete the audio file from storage if it exists
-        if 'file_path' in song_data:
+        if 'file_url' in song_data:
             try:
-                # Extract the path from the URL (this might need adjustment based on your URL format)
-                file_url = song_data['file_path']
-                file_path = file_url.split('/')[-1]
-                blob = bucket.blob(f"songs/{file_path}")
+                # Extract the blob path from the URL
+                file_url = song_data['file_url']
+                # This assumes your URL looks like: https://storage.googleapis.com/bucket-name/path/to/file
+                blob_name = file_url.split('storage.googleapis.com/')[1].split('/')[1:]
+                blob_name = '/'.join(blob_name)
+                blob = bucket.blob(blob_name)
                 blob.delete()
             except Exception as e:
                 print(f"Warning: Could not delete audio file - {e}")
 
-        # Delete the song document
         song_ref.delete()
         return jsonify({'success': True})
     except Exception as e:
@@ -912,7 +1083,8 @@ def update_product(product_id):
         return jsonify({'success': False, 'message': str(e)})
 
 
-
 if __name__ == '__main__':
+    print("Starting initialization...")  # Add debug print
     init_firestore()
+    print("Initialization complete, starting server...")  # Add debug print
     app.run(debug=True, host='0.0.0.0', port=5000)

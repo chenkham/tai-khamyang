@@ -335,12 +335,12 @@ function displaySongs(songs) {
             <td class="song-title">${song.title}</td>
             <td class="song-desc">${song.description || 'No description'}</td>
             <td>
-                ${song.file_path ?
-                    `<button class="btn-icon" onclick="playSong('${song.file_path}')" title="Play song">
+                ${song.file_url ? `
+                    <button class="btn-icon" onclick="playSong('${song.file_url}')" title="Play song">
                         <i class="fas fa-play"></i>
-                    </button>` :
-                    '<span class="no-audio">No file</span>'
-                }
+                    </button>
+                    <small>${song.file_url.split('/').pop()}</small>
+                ` : '<span class="no-audio">No file</span>'}
             </td>
             <td class="actions">
                 <button class="btn-icon edit" onclick="editSong('${song.id}')" title="Edit">
@@ -433,6 +433,7 @@ function displaySongs(songs) {
                 submitText.textContent = 'Update Song';
                 document.getElementById('songId').value = song.id;
                 document.getElementById('songTitle').value = song.title;
+                document.getElementById('songFile').value = '';
                 document.getElementById('songDescription').value = song.description || '';
             } else {
                 title.textContent = 'Add New Song';
@@ -493,41 +494,48 @@ function displaySongs(songs) {
 }
 
         async function submitSong(e) {
-            e.preventDefault();
-            showLoading();
+    e.preventDefault();
+    showLoading();
 
-            const formData = new FormData();
-            formData.append('title', document.getElementById('songTitle').value);
-            formData.append('description', document.getElementById('songDescription').value);
+    const formData = new FormData();
+    formData.append('title', document.getElementById('songTitle').value);
+    formData.append('description', document.getElementById('songDescription').value);
 
-            const songFile = document.getElementById('songFile').files[0];
-            if (songFile) {
-                formData.append('audio', songFile);
-            }
+    const songFile = document.getElementById('songFile').files[0];
+    if (songFile) {
+        formData.append('audio', songFile);
+    }
 
-            try {
-                const songId = document.getElementById('songId').value;
-                const url = songId ? `/api/songs/${songId}` : '/api/songs';
-                const method = songId ? 'PUT' : 'POST';
+    try {
+        const songId = document.getElementById('songId').value;
+        const url = songId ? `/api/songs/${songId}` : '/api/songs';
+        const method = songId ? 'PUT' : 'POST';
 
-                const response = await fetch(url, {
-                    method: method,
-                    body: formData
-                });
+        const response = await fetch(url, {
+            method: method,
+            body: formData
+            // Don't set Content-Type header - browser will set it automatically
+        });
 
-                if (response.ok) {
-                    showNotification(songId ? 'Song updated successfully' : 'Song added successfully', 'success');
-                    closeSongForm();
-                    loadSongs();
-                } else {
-                    throw new Error('Failed to save song');
-                }
-            } catch (error) {
-                showNotification('Error saving song', 'error');
-            }
+        const result = await response.json(); // Parse JSON response
 
-            hideLoading();
+        if (response.ok) {
+            showNotification(
+                songId ? 'Song updated successfully' : 'Song added successfully',
+                'success'
+            );
+            closeSongForm();
+            loadSongs();
+        } else {
+            throw new Error(result.error || 'Failed to save song');
         }
+    } catch (error) {
+        showNotification(error.message || 'Error saving song', 'error');
+        console.error('Song submission error:', error);
+    } finally {
+        hideLoading();
+    }
+}
 
         // Edit Functions
         function editWord(id) {
@@ -595,12 +603,12 @@ function displaySongs(songs) {
             });
         }
 
-        function playSong(filePath) {
-            const audio = new Audio(`/static/audio/${filePath}`);
-            audio.play().catch(error => {
-                showNotification('Cannot play song file', 'error');
-            });
-        }
+        function playSong(fileUrl) {
+    const audio = new Audio(fileUrl);
+    audio.play().catch(error => {
+        showNotification('Cannot play song: ' + error.message, 'error');
+    });
+}
 
         // Update Counts
         function updateWordsCount() {
